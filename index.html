@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketPulse NG | Intelligence Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --panel: rgba(15, 23, 42, 0.85);
+            --blue: #38bdf8;
+            --gold: #f59e0b;
+            --white: #f8fafc;
+            --dim: #94a3b8;
+            --border: 1px solid rgba(255, 255, 255, 0.1);
+            --dropdown: #1e293b;
+            --ticker-bg: rgba(2, 6, 23, 0.9);
+            --ai-accent: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            --pulse-color: #38bdf8; 
+            --pulse-speed: 2s;
+            --ai-glow: rgba(168, 85, 247, 0.4);
+            --dark-green: #15803d; 
+            --dark-text: #334155;  
+        }
+
+        body.light-mode {
+            --bg-deep: #f1f5f9;
+            --panel: rgba(255, 255, 255, 0.95);
+            --blue: #0f172a;
+            --gold: #b45309;
+            --white: #1e293b;
+            --dim: #64748b;
+            --border: 1px solid #cbd5e1;
+            --dropdown: #ffffff;
+            --ticker-bg: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; transition: background 0.3s; }
+        body { background: var(--bg-deep); color: var(--white); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        .market-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(2, 6, 23, 0.6), rgba(2, 6, 23, 0.8)), url('market_overlay.png');
+            background-size: cover; background-position: center; z-index: -1;
+            filter: saturate(1.15) brightness(0.9);
+        }
+        body.light-mode .market-bg { display: none; }
+
+        #marketPopup {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            background: var(--blue); color: #020617; padding: 15px 25px;
+            border-radius: 15px; font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; transform: translateX(150%); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #marketPopup.show { display: block; transform: translateX(0); }
+
+        #welcomeView { height: 100vh; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .auth-card {
+            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px);
+            padding: 45px; border-radius: 35px; width: 90%; max-width: 440px;
+            text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); color: #1e293b;
+        }
+
+        .auth-logo { width: 100%; max-width: 320px; display: block; margin: 0 auto 20px; }
+        #mainApp { display: none; height: 100vh; flex-direction: column; }
+        
+        .top-nav {
+            height: 100px; background: var(--panel); backdrop-filter: blur(15px);
+            display: flex; justify-content: space-between; align-items: center; padding: 0 40px;
+            border-bottom: var(--border); position: relative; z-index: 3000;
+        }
+
+        .news-ticker-bar {
+            background: var(--ticker-bg); height: 35px; display: flex; align-items: center;
+            overflow: hidden; border-bottom: var(--border); z-index: 2500;
+        }
+
+        .ticker-label {
+            background: #be123c; color: white; padding: 0 15px; height: 100%;
+            display: flex; align-items: center; font-size: 0.7rem; font-weight: 900;
+            white-space: nowrap; z-index: 2;
+        }
+
+        .ticker-content {
+            display: inline-block; white-space: nowrap; padding-left: 100%;
+            animation: tickerScroll 60s linear infinite; font-size: 0.8rem; font-weight: 600;
+        }
+
+        @keyframes tickerScroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        .ticker-item { display: inline-block; margin-right: 50px; color: var(--white); }
+        .ticker-price { font-weight: 900; margin-left: 5px; }
+
+        .branding-core { display: flex; align-items: center; margin-left: 60px; }
+        .custom-logo-container {
+            height: 95px; display: flex; align-items: center;
+            will-change: transform, filter, opacity;
+            animation: liveMarketPulse var(--pulse-speed) infinite ease-in-out;
+            transform-origin: left;
+        }
+
+        .custom-logo-img {
+            height: 100%; width: auto; transform: scaleX(1.4); 
+            filter: drop-shadow(0 0 15px var(--pulse-color));
+            transition: filter 0.5s ease;
+        }
+
+        @keyframes liveMarketPulse {
+            0%, 100% { opacity: 0.8; filter: brightness(1) drop-shadow(0 0 10px var(--pulse-color)); transform: scaleX(1.4) scale(1); }
+            50% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 40px var(--pulse-color)); transform: scaleX(1.4) scale(1.03); }
+        }
+
+        .settings-wrapper { position: relative; display: flex; align-items: center; gap: 15px; }
+        .options-menu {
+            position: absolute; top: 50px; right: 0; background: var(--dropdown);
+            border: var(--border); border-radius: 18px; width: 240px;
+            display: none; flex-direction: column; padding: 10px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.5); z-index: 4000;
+        }
+        .options-menu.active { display: flex; }
+        .menu-item {
+            padding: 12px 15px; border-radius: 10px; cursor: pointer;
+            font-size: 0.85rem; font-weight: 600; color: var(--white);
+            display: flex; align-items: center; gap: 10px; transition: 0.2s;
+        }
+        .menu-item:hover { background: rgba(56, 189, 248, 0.15); color: var(--blue); }
+        .menu-divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+        .ui-panel { 
+            background: var(--panel); border-radius: 28px; padding: 25px; 
+            border: var(--border); overflow-y: auto; backdrop-filter: blur(20px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); position: relative; z-index: 1;
+        }
+
+        .ai-feed-box {
+            background: var(--ai-accent); color: #fff; padding: 20px;
+            border-radius: 20px; margin-bottom: 20px;
+            box-shadow: 0 15px 35px var(--ai-glow);
+            position: relative; overflow: hidden;
+            perspective: 1000px; border: 1px solid rgba(255,255,255,0.2);
+            transition: box-shadow 0.8s ease;
+        }
+        .ai-tag { font-size: 9px; font-weight: 900; letter-spacing: 2px; opacity: 0.8; margin-bottom: 10px; display: block; }
+        .ai-insight { 
+            font-size: 0.95rem; font-weight: 700; line-height: 1.4; 
+            transform-style: preserve-3d; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            min-height: 60px; display: flex; align-items: center; justify-content: center; text-align: center;
+        }
+        .ai-insight.cycling { transform: rotateX(90deg) translateZ(20px); opacity: 0; }
+
+        .field {
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.2); border: 1px solid #334155;
+            border-radius: 14px; color: var(--white); margin-bottom: 12px; outline: none;
+        }
+        .field option {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            padding: 10px;
+        }
+        body.light-mode .field { background: #fff; border: 1px solid #cbd5e1; color: #1e293b; }
+        body.light-mode .field option {
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+        }
+
+        .btn {
+            width: 100%; padding: 16px; border: none; border-radius: 14px; font-weight: 900;
+            cursor: pointer; background: var(--blue); color: #020617; text-transform: uppercase;
+            letter-spacing: 1px; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+        }
+        .btn-login { background: var(--dark-green); color: white; } 
+        body.light-mode .btn { color: #fff; }
+
+        .btn-logout-top {
+            background: #ef4444; color: white; padding: 8px 15px; border-radius: 10px;
+            font-size: 0.75rem; font-weight: 800; cursor: pointer; border: none;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn-logout-top:hover { transform: scale(1.05); background: #dc2626; }
+
+        #map { height: 280px; width: 100%; border-radius: 20px; border: var(--border); margin-top: 10px; background: #0f172a;}
+        .gear-icon { cursor: pointer; color: var(--blue); font-size: 1.2rem; transition: transform 0.5s; }
+        .gear-icon:hover { transform: rotate(90deg); }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--dim); font-size: 0.75rem; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .btn-mini {
+            background: var(--blue); color: #020617; border: none; border-radius: 6px; 
+            padding: 4px 10px; font-size: 0.65rem; font-weight: 900; cursor: pointer; 
+            text-transform: uppercase; transition: transform 0.2s;
+        }
+
+        .chart-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .filter-chip {
+            padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800;
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+            transition: 0.3s; color: var(--dim);
+        }
+        .filter-chip.active { border-color: white; color: white; background: var(--blue); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+        .op-item { 
+            padding: 18px; border-radius: 18px; background: rgba(255,255,255,0.05); 
+            margin-bottom: 15px; display: flex; flex-direction: column; gap: 12px;
+            border: 1px solid rgba(255,255,255,0.1); transition: 0.3s;
+        }
+        /* --- START OF HEADER & SCROLL PATCH --- */
+
+
+body {
+    overflow-y: auto !important; /* Allows the whole page to scroll */
+    height: auto !important;
+}
+
+.dashboard-container {
+    display: block !important; /* Forces the Social Hub row to go BELOW the top row */
+    height: auto !important;
+    padding: 20px;
+}
+
+.grid-frame {
+    display: grid !important;
+    height: auto !important;
+    margin-bottom: 40px; /* Space between the two rows */
+}
+/* --- NAVIGATION & LAYOUT FIX --- */
+
+
+body {
+    overflow-y: auto !important;
+    height: auto !important;
+    padding-top: 70px; /* 🚨 IMPORTANT: Prevents the header from covering your Submit form */
+}
+
+.dashboard-container {
+    display: block !important;
+    height: auto !important;
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 1600px;
+}
+
+.grid-frame {
+    display: grid !important;
+    height: auto !important;
+    margin-bottom: 40px;
+}
+
+/* --- NAVIGATION & LAYOUT FIX --- */
+
+
+body {
+    overflow-y: auto;
+    height: 100vh;
+    margin: 0;
+}
+
+/* This targets your dashboard ID specifically */
+#mainDashboard {
+    padding-top: 90px; /* Only adds space when dashboard is visible */
+    display: none; /* Controlled by your script */
+    flex-direction: column;
+    gap: 30px;
+    padding-bottom: 50px;
+}
+
+.grid-frame {
+    display: grid !important;
+    height: auto !important;
+}
+
+.op-header { display: flex; justify-content: space-between; align-items: center; }
+/* --- END OF PATCH --- */
+        .op-name { font-weight: 900; color: var(--blue); font-size: 1rem; }
+        .op-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .op-badge { 
+            padding: 6px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 900; 
+            cursor: pointer; text-transform: uppercase; border: 1px solid transparent;
+            transition: 0.2s;
+        }
+        .op-badge:hover { transform: translateY(-2px); filter: brightness(1.2); }
+        .badge-role { background: rgba(245, 158, 11, 0.2); color: var(--gold); border-color: var(--gold); }
+        .badge-points { background: rgba(56, 189, 248, 0.2); color: var(--blue); border-color: var(--blue); }
+        .badge-del { background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: #ef4444; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
+            z-index: 5000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-content { width: 95%; max-width: 550px; max-height: 85vh; display: flex; flex-direction: column; }
+
+        .remember-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; justify-content: center; font-size: 0.85rem; color: var(--dark-text); font-weight: 700; cursor: pointer; }
+        .reg-link { background: none; border: none; font-size: 0.85rem; font-weight: 800; color: var(--dark-text); cursor: pointer; text-decoration: underline; }
+
+        /* Pop-up UI Fixes */
+        .leaflet-popup-content-wrapper { background: #1e293b; color: #f8fafc; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .leaflet-popup-tip { background: #1e293b; }
+        .mp-pop-card { display: flex; flex-direction: column; gap: 8px; min-width: 140px; padding: 5px; }
+        .mp-pop-title { font-weight: 900; color: var(--blue); font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        .mp-pop-price { font-weight: 900; color: var(--gold); font-size: 1.1rem; }
+        .mp-pop-loc { font-size: 0.75rem; color: var(--dim); }
+        .mp-pop-btn { background: var(--blue); color: #020617; border: none; padding: 8px; border-radius: 6px; font-weight: 900; font-size: 0.7rem; cursor: pointer; text-align: center; margin-top: 5px; transition: 0.2s; }
+        .mp-pop-btn:hover { background: #7dd3fc; }
+        /* --- INJECT NEW STYLES HERE --- */
+        .bottom-scroll-section {
+    width: 100%;
+    margin-top: 50px;
+    padding: 20px;
+    background: linear-gradient(to bottom, transparent, var(--bg-deep));
+    border-top: var(--border);
+}
+
+    .leaderboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--panel);
+    border-radius: 20px;
+    padding: 25px;
+}
+
+    .scrollable-list {
+    max-height: 400px; /* Limits the height so it doesn't push the page too far */
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+        /* Custom Scrollbar for theIntelligence Portal look */
+        .scrollable-list::-webkit-scrollbar { width: 5px; }
+        .scrollable-list::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 10px; }
+        /* Sync Reporter Name, Phone, and Price to match the dark dropdowns */
+        #f_rep_name, 
+        #f_rep_phone, 
+        #f_price {
+            background: #1e293b !important; /* This matches your --dropdown variable */
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: var(--white) !important;
+}
+
+        /* Ensure the placeholder text is visible but dim */
+        #f_rep_name::placeholder, 
+        #f_rep_phone::placeholder, 
+        #f_price::placeholder {
+            color: var(--dim);
+            opacity: 0.7;
+}
+
+        /* 1. THE AUTOFILL FIX: Forces browser-saved info to stay dark/transparent */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 40px rgba(30, 41, 59, 1) inset !important;
+            -webkit-text-fill-color: var(--white) !important;
+            transition: background-color 5000s ease-in-out 0s;
+            border-radius: 14px;
+        }
+
+        /* 2. THE PRICE INPUT SYNC: Matches the styling for the number field */
+        #f_price.field {
+            background: rgba(30, 41, 59, 0.7) !important;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        #f_price::-webkit-outer-spin-button,
+        #f_price::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 3. THE MENU VISIBILITY: Fixes the toggle behavior */
+        .options-menu.show { 
+            display: flex !important; 
+        }
+
+        .new-feature-card {
+            background: var(--panel);
+            border: 1px solid var(--blue);
+            padding: 10px;
+        }
+
+        .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .leaderboard-table td { padding: 8px; font-size: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .rank-badge { font-weight: 900; margin-right: 5px; }
+
+
+     /* 1. THE AUTOFILL FIX: Stops browser-saved names from turning white */
+     input:-webkit-autofill,
+     input:-webkit-autofill:hover, 
+     input:-webkit-autofill:focus,
+     input:-webkit-autofill:active {
+     -webkit-box-shadow: 0 0 0 40px #1e293b inset !important; /* Matches your field color */
+     -webkit-text-fill-color: #f8fafc !important; /* Matches your white text color */
+     transition: background-color 5000s ease-in-out 0s;
+     border-radius: 14px;
+}
+
+    /* 2. THE MENU FIX: Ensures the Javascript 'show' class works */
+    #optionsMenu.show { 
+    display: flex !important; 
+}
+
+    .new-feature-card {
+    background: var(--panel);
+    border: 1px solid var(--blue);
+    padding: 10px;
+}
+
+    .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .leaderboard-table td { padding: 8px; font-size: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .rank-badge { font-weight: 900; margin-right: 5px; }
+    /* 🏆 NEW SCROLLABLE LEADERBOARD SECTION */
+    .bottom-scroll-section {
+    width: 100%;
+    margin-top: 50px;
+    padding: 40px 20px;
+    background: linear-gradient(to bottom, transparent, rgba(2, 6, 23, 0.8));
+    border-top: 1px solid rgba(56, 189, 248, 0.1);
+}
+
+    .leaderboard-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--panel);
+    border: var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+    .section-title {
+    font-size: 1rem;
+    color: var(--blue);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+}
+
+    .table-wrapper {
+    max-height: 300px; /* This creates the scroll effect */
+    overflow-y: auto;
+}
+
+    /* Custom Mini-Scrollbar */
+    .table-wrapper::-webkit-scrollbar { width: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 10px; }
+
+    /* Modern Toast Notification System */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast-card {
+    background: var(--panel);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--blue);
+    color: var(--white);
+    padding: 15px 25px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: toastSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    min-width: 200px;
+}
+
+@keyframes toastSlideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-fade-out {
+    animation: toastSlideOut 0.5s ease forwards;
+}
+
+@keyframes toastSlideOut {
+    to { transform: translateX(120%); opacity: 0; }
+}
+
+.toast-icon {
+    color: var(--blue);
+    font-size: 1.1rem;
+}
+
+/* Color sync for XP points */
+.xp-gold { 
+    color: var(--gold) !important; 
+    font-weight: 800; 
+    text-shadow: 0 0 5px rgba(245, 158, 11, 0.3); 
+}
+
+/* 🎯 FINAL COMPACT FORM - Replaces all previous compact/submit fix blocks */
+.compact-form { 
+    padding: 10px 15px !important; 
+}
+.compact-form h3 { 
+    margin-bottom: 8px !important; 
+    font-size: 1rem !important; 
+    color: var(--blue);
+}
+.compact-form label {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px !important;
+    display: block;
+    color: var(--dim);
+}
+.compact-form .field { 
+    margin-bottom: 5px !important; 
+    padding: 8px !important; 
+    font-size: 0.85rem !important;
+}
+.compact-form .btn-glow { 
+    padding: 10px !important; 
+    margin-top: 8px !important;
+    font-size: 0.9rem !important;
+}
+#gpsStatus {
+    margin-top: 4px !important;
+    font-size: 0.7rem !important;
+}
+
+/* 🌍 Global Scroll Fix */
+body {
+    overflow-y: auto !important;
+    height: auto !important;
+}
+
+.dashboard-container {
+    display: block !important; /* Forces the second row to move BELOW the first */
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Ensure the grid frames don't fight for space */
+.grid-frame {
+    display: grid !important;
+    width: 100% !important;
+    height: auto !important;
+    margin-bottom: 30px; /* Space between the top and bottom rows */
+}
+
+.grid-frame {
+    height: auto !important; /* Removes the "trapped" height */
+}
+
+header.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    z-index: 9999;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    border-bottom: var(--border);
+    padding: 0 30px;
+}
+
+#mainApp {
+    padding-top: 115px;
+}
+
+.news-ticker-bar {
+    position: fixed;
+    top: 80px; /* sits just below header */
+    left: 0;
+    right: 0;
+    z-index: 9000;
+}
+
+.grid-frame {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.ui-panel {
+    margin-top: 0 !important;
+}
+
+h3 {
+    margin-top: 0 !important;
+}
+
+.news-ticker-bar {
+    margin-bottom: 0 !important;
+}
+
+.grid-frame {
+    gap: 10px; /* controls spacing between columns */
+}
+    /* --- END OF CSS --- */
+    </style>
+</head>
+<body>
+
+<div id="marketPopup">🔔 NEW DATA SYNCED</div>
+<div class="market-bg"></div>
+
+<div id="welcomeView">
+    <div class="auth-card" id="loginCard">
+        <img src="image.png" class="auth-logo" alt="MarketPulse NG">
+        <h2 style="font-weight:900; margin-bottom:5px;">Intelligence Portal</h2>
+        <p style="color:#64748b; font-size:0.95rem; margin-bottom:30px;">Northeast Trade & Price Monitoring</p>
+        
+        <input type="text" id="userIn" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Email or Phone Number">
+        <input type="password" id="passIn" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="••••••••">
+        
+        <label class="remember-wrap">
+            <input type="checkbox" id="rememberMe"> Keep me logged in
+        </label>
+
+        <div class="auth-box">
+            <button id="loginBtn" class="btn btn-login" onclick="handleLogin()" style="margin-bottom: 10px;">Login</button>
+            <button class="reg-link" onclick="showRegister()">New User? Register</button>
+        </div>
+    </div> <div class="auth-card" id="registerCard" style="display: none;">
+        <img src="image.png" class="auth-logo" alt="MarketPulse NG">
+        <h2 style="font-weight:900; margin-bottom:5px;">New User Registration</h2>
+        <p style="color:#64748b; font-size:0.95rem; margin-bottom:30px;">Create your operator credentials</p>
+        
+        <input type="text" id="regName" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Full Name">
+        <input type="text" id="regUser" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Email or Phone Number">
+        <input type="password" id="regPass" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Create Password">
+        <input type="password" id="regPassConfirm" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Confirm Password">
+
+        <div class="auth-box">
+            <button class="btn btn-login" onclick="handleRegister()" style="margin-bottom: 10px;">Register Account</button>
+            <button class="reg-link" onclick="showLogin()">Back to Login</button>
+        </div>
+    </div> </div>
+
+
+<div id="mainApp">
+        <header class="top-nav">
+        <div class="branding-core">
+            <div id="logoContainer" class="custom-logo-container">
+                <img src="image.png" class="custom-logo-img" alt="MarketPulseNG Logo">
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="text-align: right;">
+                <div id="displayUserName" style="font-weight:900; color:var(--gold); font-size: 1.1rem; text-transform: uppercase;">LOADING...</div>
+                <div id="displayUserRole" style="font-size: 0.7rem; opacity: 0.8; font-weight: 600;">Connecting...</div>
+            </div>
+            
+            <div class="settings-wrapper">
+                <button class="btn-logout-top" onclick="logout()">LOG OUT</button>
+                <div class="gear-icon" onclick="toggleMenu()">⚙️</div>
+                <div id="optionsMenu" class="options-menu">
+                    <div class="menu-item" onclick="toggleTheme()">🌓 Change Theme</div>
+                    <div class="menu-item" onclick="toggleGPS()" id="gpsToggleBtn">🛰️ Satellite Tracking: OFF</div>
+                    <div class="menu-item" onclick="triggerUpdate()">🔄 Update System</div>
+                    
+                    <div id="adminControls" style="display:none;">
+                        <div class="menu-divider"></div>
+                        <div class="menu-item" onclick="manageUsers()" style="color:var(--gold)">👥 Manage Operators</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="news-ticker-bar">
+        <div class="ticker-label">MARKET PULSE LIVE</div>
+        <div class="ticker-content" id="liveTicker">Initializing intelligence feed...</div>
+    </div>
+
+    <div class="grid-frame" style="grid-template-columns: 320px 1fr 420px;">
+        <aside class="ui-panel compact-form">
+
+            <h3 style="margin-bottom:20px; color:var(--blue); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px;">Submit Market Price</h3>
+            
+            <label style="font-size:0.7rem; font-weight:bold; color:var(--dim);">REPORTER NAME</label>
+            <input type="text" id="f_rep_name" class="field" placeholder="Full Name">
+            
+            <label style="font-size:0.7rem; font-weight:bold; color:var(--dim);">REPORTER PHONE</label>
+            <input type="tel" id="f_rep_phone" class="field" placeholder="080...">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-size:0.7rem; font-weight:bold; color:var(--dim);">COMMODITY</label>
+                <button class="btn-mini" onclick="addCommodity()">+ New</button>
+            </div>
+            <select id="f_item" class="field"></select>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-size:0.7rem; font-weight:bold; color:var(--dim);">MARKET HUB</label>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-mini" onclick="renameHub()" style="background:#64748b; color:white">✏️</button>
+                    <button class="btn-mini" onclick="addHub()" style="background:var(--gold)">+ New Hub</button>
+                </div>
+            </div>
+            <select id="f_loc" class="field" onchange="focusMarketOnMap()"></select>
+
+            <label style="font-size:0.7rem; font-weight:bold; color:var(--dim);">PRICE (₦)</label>
+            <input type="number" id="f_price" class="field" placeholder="Enter Price (₦)">
+            
+            <button class="btn" onclick="submitData()">Submit Report</button>
+            <p id="gpsStatus" style="font-size:0.7rem; color:var(--gold); text-align:center; margin-top:10px;">Tracking: Passive Mode</p>
+            
+            
+        </aside>
+
+        <main class="ui-panel">
+            <div class="chart-controls" id="chartToggles"></div>
+            <div style="height: 220px;"><canvas id="priceChart"></canvas></div>
+            <h3 style="margin-top:25px; margin-bottom:15px; font-size:14px; color:var(--blue);">📍 Regional Intelligence Map</h3>
+            <div id="map"></div>
+        </main>
+
+        <aside class="ui-panel" style="display: flex; flex-direction: column;">
+            <div class="ai-feed-box" id="aiGlowBox">
+                <span class="ai-tag">AI PREDICTIVE INSIGHT</span>
+                <div id="aiPrediction" class="ai-insight">Awaiting Live Ledger Data...</div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px 0;">Live Market Ledger</h3>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding-right: 5px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
+                        <tr style="font-size: 0.75rem; color: var(--dim);">
+                            <th style="text-align:left; padding: 10px;">Time</th>
+                            <th style="text-align:left;">Item</th>
+                            <th style="text-align:left;">Price</th>
+                            <th style="text-align:right; padding-right:10px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerBody"></tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:25px; border-top: 1px solid var(--border); padding-top:15px;">
+                <h3 style="margin-bottom:15px;">System Status</h3>
+                <div style="padding:15px; background:rgba(16, 185, 129, 0.1); border:1px solid #10b981; border-radius:18px; color:#10b981; margin-bottom:15px;">
+                    <span style="font-weight:900;">● NODE ONLINE</span>
+                    <p style="font-size:0.7rem; margin-top:5px;">Cloud Sync: Active (V18.2)</p>
+                </div>
+                <div style="font-size:0.8rem; color:var(--dim);">Session Entries: <span id="sessionCount" style="color:var(--white); font-weight:bold;">0</span></div>
+            </div>
+        </aside>
+    </div> <div class="grid-frame" style="margin-top: 30px; grid-template-columns: 320px 1fr 420px; row-gap: 20px;">
+        
+        <aside class="ui-panel">
+             <h3 style="color:var(--gold); font-size:14px; margin-bottom:15px; text-transform: uppercase;">🏆 Top Contributors</h3>
+             <table class="leaderboard-table" style="width:100%;">
+                 <tbody id="leaderboardBody"></tbody>
+             </table>
+        </aside>
+
+        <aside class="ui-panel" style="min-height: 300px; display: flex; flex-direction: column;">
+    <h3 style="color:var(--blue); font-size:14px; margin-bottom:15px;">🌐 Social Hub</h3>
+    <div id="socialFeed" style="font-size:0.8rem; color:var(--dim); overflow-y:auto; flex:1;">
+        Intelligence Feed Initializing...
+    </div>
+</aside>
+
+        <aside class="ui-panel" style="display: flex; flex-direction: column;">
+    <h3 style="color:var(--white); font-size:14px; margin-bottom:10px;">📢 Market Ads</h3>
+
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+        <input id="adInput" class="field" placeholder="Post an ad..." style="flex:1;">
+        <button class="btn-mini" onclick="postAd()">Add</button>
+    </div>
+
+    <div id="adsFeed" style="font-size:0.8rem; color:var(--dim); max-height:200px; overflow-y:auto;">
+        No ads yet...
+    </div>
+</aside>
+    </div>
+</div> <div id="opModal" class="modal-overlay">
+    <div class="ui-panel modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="color:var(--blue)">Operator Registry</h3>
+            <button onclick="document.getElementById('opModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">×</button>
+        </div>
+        <input type="text" id="opSearch" class="field" placeholder="🔍 Search operator name..." onkeyup="filterOperators()">
+        <div id="opList" style="overflow-y:auto; flex:1; padding-right:5px;"></div>
+    </div>
+</div>
+
+<script type="module">
+    let allReports = [];
+
+    // 1. Firebase Imports (Standardized to 12.10.0)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    import { 
+        getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
+        limit, doc, deleteDoc, getDoc, setDoc, serverTimestamp, 
+        updateDoc, increment 
+    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+    import { 
+        getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+        onAuthStateChanged, signOut 
+    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+    // 2. Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDUqTe-E_dcvcLHgpSBmMlVOhSp5suSKfc", 
+        authDomain: "marketpulse-ng.firebaseapp.com",
+        projectId: "marketpulse-ng",
+        storageBucket: "marketpulse-ng.firebasestorage.app",
+        messagingSenderId: "969967332575",
+        appId: "1:969967332575:web:b8c5784b67cb812bdfcd6a",
+        measurementId: "G-XFJ7ZQQWKV"
+    };
+
+    // 3. Initialize Services
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // 4. USER PROFILE REPAIR SYSTEM
+    /* 🛠️ USER PROFILE REPAIR SYSTEM */
+    window.repairUserProfile = async function(userId, userData) {
+        console.log("🛠️ System: Running Profile Health Check...");
+        try {
+            const userRef = doc(db, "Users", userId);
+            let updates = {};
+
+            // Logic check for missing fields
+            if (!userData.role) updates.role = "User";
+            if (userData.level === undefined) updates.level = 0;
+            if (!userData.vouches) updates.vouches = [];
+            if (userData.vouchCount === undefined) updates.vouchCount = 0;
+            if (userData.isVerified === undefined) updates.isVerified = false;
+
+            // Only run the update if there are missing pieces
+            if (Object.keys(updates).length > 0) {
+                await updateDoc(userRef, updates);
+                console.log("✅ System: Profile Repaired (Missing fields added) for ID:", userId);
+            } else {
+                console.log("💎 System: Profile is already healthy. No repair needed.");
+            }
+        } catch (error) {
+            console.error("❌ Critical: Profile repair failed", error);
+        }
+    };
+    
+    /* 5. 🤝 THE VOUCH & PROMOTION ENGINE */
+    window.vouchForUser = async function(targetUserId) {
+        try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) return alert("🛰️ Access Denied: Please log in first.");
+
+            const myData = window.currentUserData;
+
+            // 🔐 Hierarchy Check: Only Level 2 (Special Agent) and above can vouch
+            if (!myData || myData.level < 2) {
+                return alert("⚠️ Authority Required: Only Special Agents (Level 2+) can vouch for operators.");
+            }
+
+            // 🚫 Self-Vouch Prevention
+            if (currentUser.uid === targetUserId) {
+                return alert("❌ Protocol Violation: You cannot vouch for yourself.");
+            }
+
+            const userRef = doc(db, "Users", targetUserId);
+            const userSnap = await getDoc(userRef);
+
+            if (!userSnap.exists()) return alert("🔍 Error: Operator not found in database.");
+
+            const userData = userSnap.data();
+
+            // 🚫 Duplicate Check
+            if (userData.vouches?.includes(currentUser.uid)) {
+                return alert("✅ Notification: You have already vouched for this operator.");
+            }
+
+            // 🚫 Target Requirement: Must be Level 1 (Agent) to be eligible for promotion
+            if (userData.level !== 1) {
+                return alert("⏳ Eligibility: Only Level 1 Agents can be vouched for promotion.");
+            }
+
+            // 🚫 Point Threshold: Must have 2,500 XP
+            if ((userData.points || 0) < 2500) {
+                return alert("📊 Training Needed: Operator needs at least 2,500 XP before promotion.");
+            }
+
+            // Calculate new Vouch data
+            const newVouches = [...(userData.vouches || []), currentUser.uid];
+            const newCount = newVouches.length;
+
+            let updates = {
+                vouches: newVouches,
+                vouchCount: newCount
+            };
+
+            // 🎯 AUTOMATIC PROMOTION LOGIC
+            // If they hit 3 vouches, they become Level 2 (Special Agent)
+            if (newCount >= 3) {
+                updates.role = "Special Agent";
+                updates.level = 2;
+                updates.isVerified = true;
+                alert("🌟 PROMOTION: Operator has been promoted to Special Agent!");
+            }
+
+            await updateDoc(userRef, updates);
+            alert("📡 Satellite Link: Vouch successful. Operator reputation updated.");
+
+        } catch (err) {
+            console.error("Vouch error:", err);
+            alert("❌ System Error: Vouch transmission failed.");
+        }
+    };
+        /* 6. 🔄 AUTH ENGINE */
+        onAuthStateChanged(auth, async (user) => {
+        console.log("Auth System: Checking user...");
+        const welcomeView = document.getElementById('welcomeView');
+        const mainApp = document.getElementById('mainApp');
+
+        if (user) {
+            console.log("Auth System: User detected ->", user.email);
+            
+            // 1. Open the UI immediately
+            if (typeof enterApp === "function") enterApp();
+
+            try {
+                // 2. Fetch User Profile
+                const userRef = doc(db, "Users", user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                // 3. Set Global Data (provides defaults if the doc doesn't exist yet)
+                const userData = userSnap.exists() ? userSnap.data() : { 
+                    name: "Operator", 
+                    role: "User", 
+                    points: 0,
+                    level: 0 
+                };
+
+                window.currentUserData = userData;
+
+                // 4. Run Auto-Repair (Ensures the database has all hierarchy fields)
+                await window.repairUserProfile(user.uid, userData);
+                
+                // 5. Trigger Role-Based UI
+                if (typeof updateUIForRole === "function") updateUIForRole(user); 
+
+                // 6. Start Services
+                if (typeof initMap === "function") initMap();
+                if (typeof startLiveUpdates === "function") startLiveUpdates(); 
+                if (typeof loadCommodities === "function") loadCommodities(); 
+                if (typeof loadHubs === "function") loadHubs();
+                if (typeof startLeaderboardUpdates === "function") startLeaderboardUpdates(); 
+                
+            } catch (error) {
+                console.error("Dashboard Load Error:", error);
+            }
+        } else {
+            console.log("Auth System: No user found.");
+            if (welcomeView) welcomeView.style.display = 'flex';
+            if (mainApp) mainApp.style.display = 'none';
+        }
+    });
+    
+    // 🔔 TOAST SYSTEM
+window.showToast = function(message, icon = "📡") {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-card';
+    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Auto-disappear
+    setTimeout(() => {
+        toast.classList.add('toast-fade-out');
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
+};
+
+// 🌐 SOCIAL HUB
+window.postSocial = function() {
+    const input = document.getElementById("socialInput");
+    const feed = document.getElementById("socialFeed");
+
+    if (!input || !feed) return;
+    if (!input.value.trim()) return;
+
+    const msg = document.createElement("div");
+    msg.style.padding = "8px";
+    msg.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+    msg.innerHTML = `<strong>You:</strong> ${input.value}`;
+
+    feed.prepend(msg);
+    input.value = "";
+
+    localStorage.setItem("socialFeed", feed.innerHTML);
+};
+
+// 📢 MARKET ADS
+window.postAd = function() {
+    const input = document.getElementById("adInput");
+    const feed = document.getElementById("adsFeed");
+
+    if (!input || !feed) return;
+    if (!input.value.trim()) return;
+
+    const ad = document.createElement("div");
+    ad.style.padding = "8px";
+    ad.style.border = "1px dashed var(--dim)";
+    ad.style.borderRadius = "8px";
+    ad.style.marginBottom = "8px";
+    ad.innerHTML = input.value;
+
+    feed.prepend(ad);
+    input.value = "";
+
+    localStorage.setItem("adsFeed", feed.innerHTML);
+};
+
+// ✅ INIT
+showToast("System Imports Loaded", "📥");
+
+    
+
+    const MASTER_ADMIN_EMAIL = "alwali7983@gmail.com";
+
+    const preInstalledHubs = {
+        "Monday Market (Maiduguri)": [11.8333, 13.1500],
+        "Potiskum Grain Market": [11.7072, 11.0825],
+        "Gombe Main Market": [10.2897, 11.1673],
+        "Damaturu Central": [11.7470, 11.9610],
+        "Dawanau Market (Kano)": [12.0022, 8.5920],
+        "Central Market (Kaduna)": [10.5105, 7.4165],
+        "Kauru Market (Sokoto)": [13.0059, 5.2476],
+        "Abubakar Kago Market (Bida)": [9.0833, 6.0167],
+        "Terminus Market (Jos)": [9.9158, 8.8932],
+        "Wuse Market (Abuja)": [9.0667, 7.4833],
+        "Bodija Market (Ibadan)": [7.4333, 3.9167],
+        "Oja Oba (Akure)": [7.2500, 5.2000],
+        "Mile 12 (Lagos)": [6.6010, 3.3910],
+        "Ariaria Int'l (Aba)": [5.1167, 7.3667],
+        "Onitsha Main Market": [6.1500, 6.7833],
+        "Ogbete Market (Enugu)": [6.4413, 7.4988],
+        "Oil Mill Market (PH)": [4.8156, 7.0498],
+        "Uselu Market (Benin)": [6.3350, 5.6030],
+        "Watt Market (Calabar)": [4.9589, 8.3268]
+    };
+
+    let currentCoords = "Searching...";
+    let isGPSEnabled = false;
+    let watchID = null;
+    let activeMarkers = {};
+    let map = null;
+    let activeFilters = new Set(["ALL"]); 
+    let isInitialLoad = true;
+    let audioContext = null;
+    let aiCycleInterval = null;
+    let currentCycleIndex = 0;
+    let dynamicHubs = { ...preInstalledHubs }; 
+    let hubDocMapping = {}; 
+    let currentUserData = null;
+    let leaderboardStarted = false;
+
+    const commodityRegistry = {
+        "Rice (Local)": { color: "#f87171", freq: 440 }, 
+        "Beans (Brown)": { color: "#fbbf24", freq: 349 }, 
+        "Maize": { color: "#4ade80", freq: 659 },        
+        "Sorghum": { color: "#818cf8", freq: 784 },      
+        "Wheat": { color: "#f472b6", freq: 987 }         
+    };
+
+    function getColor(name) { return commodityRegistry[name]?.color || "#38bdf8"; }
+    function getFreq(name) { return commodityRegistry[name]?.freq || 880; }
+    
+    // 🛠️ Force inputs to always be interactive
+setTimeout(() => {
+  const inputs = document.querySelectorAll('input');
+
+  inputs.forEach(input => {
+    input.style.pointerEvents = "auto";
+    input.style.zIndex = "10";
+    input.removeAttribute("readonly");
+    input.removeAttribute("disabled");
+  });
+}, 1000);
+    // Added Audio Tone logic
+    function playSuccessTone() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [600, 800, 1000].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            setTimeout(() => {
+                osc.start();
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.1);
+            }, i * 150);
+        });
+    }
+
+    window.openStreetView = function(lat, lng) {
+        const url = `https://www.google.com/maps?q=${lat},${lng}`;
+        window.open(url, '_blank');
+    };
+
+   /* 🔔 Market Alert System */
+function triggerVisualAlerts(item, price) {
+    const color = (typeof getColor === "function") ? getColor(item) : "#38bdf8";
+    document.documentElement.style.setProperty('--pulse-color', color);
+    document.documentElement.style.setProperty('--pulse-speed', '0.5s');
+
+    if (typeof playSuccessTone === "function") playSuccessTone();
+
+    const pop = document.getElementById('marketPopup');
+    if (pop) {
+        pop.innerHTML = `🔔 <strong>NEW ENTRY:</strong> ${item} @ ₦${price.toLocaleString()}`;
+        pop.style.background = color;
+        pop.classList.add('show');
+        
+        setTimeout(() => {
+            document.documentElement.style.setProperty('--pulse-speed', '2s');
+            pop.classList.remove('show');
+        }, 4000);
+    }
+}
+
+/* ✨ Points Popup */
+function showPointPop(pts) {
+    let el = document.getElementById('pointPop');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'pointPop';
+        el.style = "position:fixed; top:20px; right:20px; background:#f59e0b; color:black; padding:10px 20px; border-radius:30px; font-weight:bold; display:none; z-index:9999;";
+        document.body.appendChild(el);
+    }
+    el.innerText = `+${pts} PTS`;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+/* 🚀 THE DOOR OPENER (Now outside the engine so it works) */
+    function enterApp() {
+    console.log("System: Transitioning to Dashboard...");
+    
+    const loginCard = document.getElementById('loginCard');
+    const registerCard = document.getElementById('registerCard');
+    const mainApp = document.getElementById('mainApp');
+    const welcomeView = document.getElementById('welcomeView');
+
+    // 1. Hide all entrance UI
+    if (loginCard) loginCard.style.display = 'none';
+    if (registerCard) registerCard.style.display = 'none';
+    if (welcomeView) welcomeView.style.display = 'none';
+
+    // 2. Reveal the Main Application
+    if (mainApp) {
+        mainApp.style.display = 'flex'; 
+        mainApp.classList.remove('hidden');
+        
+        // Unlock Audio: This "primes" the browser to allow sounds
+        window.audioEnabled = true;
+        const silentContext = new Audio();
+        silentContext.play().catch(() => {}); // This silent play fully unlocks the speaker
+    }
+
+    // 3. 🚀 DATA PATCH: Start Real-Time Listeners
+    if (auth.currentUser) {
+        console.log("System: Refreshing UI and Data Streams for", auth.currentUser.email);
+        
+        // Refresh User Branding (Gold Name Logic)
+        updateUIForRole(auth.currentUser);
+
+    
+    }
+
+    // 4. 🗺️ MAP FIX: Force the map to fill the container correctly
+    setTimeout(() => {
+        if (typeof map !== 'undefined' && map) {
+            map.invalidateSize();
+        }
+    }, 500);
+}
+
+/* 🔄 AUTH ENGINE */
+onAuthStateChanged(auth, async (user) => {
+    console.log("Auth System: Checking user...");
+    const welcomeView = document.getElementById('welcomeView');
+    const mainApp = document.getElementById('mainApp');
+
+    if (user) {
+        console.log("Auth System: User detected ->", user.email);
+        
+        // 1. Open the UI immediately
+        if (typeof enterApp === "function") enterApp();
+
+        try {
+            // 2. Fetch User Profile
+            const userRef = doc(db, "Users", user.uid);
+            const userSnap = await getDoc(userRef);
+            
+            // 3. Set Global Data
+            const userData = userSnap.exists() ? userSnap.data() : { name: "Operator", role: "User", points: 0 };
+
+            window.currentUserData = userData;
+
+            await repairUserProfile(user.uid, userData);
+            
+            // 4. Trigger Master Admin Bypass or Standard UI
+            updateUIForRole(user); 
+
+            // 5. Start Services
+            if (typeof initMap === "function") initMap();
+            if (typeof startLiveUpdates === "function") startLiveUpdates(); 
+            if (typeof loadCommodities === "function") loadCommodities(); 
+            if (typeof loadHubs === "function") loadHubs();
+            if (typeof startLeaderboardUpdates === "function") startLeaderboardUpdates(); 
+            
+        } catch (error) {
+            console.error("Dashboard Load Error:", error);
+        }
+    } else {
+        console.log("Auth System: No user found.");
+        if (welcomeView) welcomeView.style.display = 'flex';
+        if (mainApp) mainApp.style.display = 'none';
+    }
+});
+
+    /* 🔐 GLOBAL LOGIN */
+    window.handleLogin = async function() {
+    const btn = document.getElementById('loginBtn');
+    const userIn = document.getElementById('userIn').value.trim();
+    const passIn = document.getElementById('passIn').value;
+
+    if (!userIn || !passIn) return alert("Credentials required.");
+
+    btn.innerText = "VERIFYING...";
+    btn.disabled = true;
+
+    const finalEmail = userIn.includes('@') ? userIn : `${userIn}@marketpulse.node`;
+
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, finalEmail, passIn);
+        btn.innerText = "VERIFIED";
+        btn.style.backgroundColor = "#22c55e";
+        
+        // Let the Auth Engine above handle the transition
+    } catch (error) {
+        console.error("Login Error:", error);
+        alert("Login Failed: " + error.message);
+        btn.innerText = "FAILED";
+        btn.style.backgroundColor = "#ef4444";
+        setTimeout(() => {
+            btn.innerText = "Log in";
+            btn.style.backgroundColor = "";
+            btn.disabled = false;
+        }, 1500);
+    }
+};
+
+/* 👤 USER INTERFACE & ROLE ENGINE (Cleaned & Locked) */
+function updateUIForRole(user) {
+    if (!user) return;
+
+    const nameEl = document.getElementById('displayUserName') || document.getElementById('opName');
+    const roleEl = document.getElementById('displayUserRole') || document.getElementById('opRole');
+    const adminMenu = document.getElementById('adminControls');
+
+    // 🏆 MASTER ADMIN LOCK (Checks email string directly)
+    if (user.email === "alwali7983@gmail.com") {
+        if (nameEl) nameEl.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">ALWALI UMARA AMSHI</span>`;
+        if (roleEl) roleEl.innerHTML = `<span style="color:#f59e0b; font-size:0.7rem; font-weight:900;">👑 MASTER ADMIN</span>`;
+        if (adminMenu) adminMenu.style.display = "block";
+        window.currentUserData = { name: "ALWALI UMARA AMSHI", role: "Admin", points: 1000 };
+        return; // ✅ Stops here so the data below never overwrites you
+    }
+
+    // 👤 STANDARD USER LOGIC
+    const userData = window.currentUserData || {};
+    if (nameEl) nameEl.innerText = (userData.name || "Field Reporter").toUpperCase();
+    if (roleEl) roleEl.innerText = userData.role === "Admin" ? "Administrator Access" : "Field Agent";
+    if (adminMenu) adminMenu.style.display = (userData.role === "Admin") ? "block" : "none";
+}
+
+    /* 🏆 ENHANCED LEADERBOARD UPDATES */
+function startLeaderboardUpdates() {
+
+    // 🛑 STOP duplicate listeners
+    if (leaderboardStarted) return;
+    leaderboardStarted = true;
+
+    const q = query(
+        collection(db, "Users"),
+        orderBy("points", "desc"),
+        limit(10)
+    );
+
+    onSnapshot(q, (snapshot) => {
+        const board = document.getElementById("leaderboardBody");
+        if (!board) return;
+
+        board.innerHTML = "";
+
+        snapshot.forEach(doc => {
+            const user = doc.data();
+
+            const row = document.createElement("tr");
+
+row.innerHTML = `
+    <td>
+        <span class="rank-badge">🏅</span>
+        <strong>${user.name || "User"}</strong>
+    </td>
+    <td style="text-align:right;">
+        ${user.points || 0} pts
+    </td>
+`;
+
+board.appendChild(row);
+        });
+    });
+}
+
+    
+    async function handleRegister() {
+        const name = document.getElementById('regName').value.trim();
+        const identifier = document.getElementById('regUser').value.trim();
+        const pass = document.getElementById('regPass').value;
+        const confirm = document.getElementById('regPassConfirm').value;
+
+        if(!name || !identifier || !pass) return alert("Please fill in all fields.");
+        if(pass !== confirm) return alert("Password mismatch detection.");
+
+        const finalEmail = identifier.includes('@') ? identifier : `${identifier}@marketpulse.node`;
+
+        try {
+            // 1. Create the Auth Account
+            const cred = await createUserWithEmailAndPassword(auth, finalEmail, pass);
+            
+            // 2. Create the Database Profile (The "Identity Card")
+            // We use 'await' here to ensure the data is saved before moving on
+            await setDoc(doc(db, "Users", cred.user.uid), { 
+                  name: name, 
+                  email: finalEmail,
+                  role: "User", 
+                  level: 0,
+                  points: 0,
+
+                  vouches: [],
+                  vouchCount: 0,
+                  isVerified: false,
+
+                  joinedAt: serverTimestamp()
+});
+
+            alert("Registration Complete! You can now log in.");
+            
+            // 3. Clear fields and go to login
+            document.getElementById('regName').value = "";
+            document.getElementById('regUser').value = "";
+            document.getElementById('regPass').value = "";
+            document.getElementById('regPassConfirm').value = "";
+            
+            if (typeof showLogin === "function") showLogin();
+
+        } catch (error) { 
+            console.error("Registration Error:", error);
+            alert("Registration Failed: " + error.message); 
+        }
+    }
+
+    window.logout = async () => { await signOut(auth); location.reload(); };
+
+    function initMap() {
+        if (!map) {
+            map = L.map('map').setView([11.8333, 13.1500], 7);
+            
+            if (map) {
+                map.setView([11.8333, 13.1500], 6);
+            }
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap',
+                crossOrigin: true
+            }).addTo(map);
+        }
+    }
+
+    window.toggleGPS = () => {
+        isGPSEnabled = !isGPSEnabled;
+        const btn = document.getElementById('gpsToggleBtn');
+        const status = document.getElementById('gpsStatus');
+        if (isGPSEnabled) {
+            btn.innerText = "🛰️ Satellite Tracking: ON"; btn.style.color = "#38bdf8";
+            watchID = navigator.geolocation.watchPosition((pos) => {
+                currentCoords = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
+                status.innerText = `GPS Active: ${currentCoords}`;
+            }, (err) => { console.error(err); status.innerText = "GPS Error"; });
+        } else {
+            btn.innerText = "🛰️ Satellite Tracking: OFF"; btn.style.color = ""; status.innerText = "Tracking: Passive Mode";
+            if(watchID) navigator.geolocation.clearWatch(watchID);
+        }
+    };
+
+    const priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            } 
+        }
+    });
+
+    window.focusMarketOnMap = () => {
+        const hub = document.getElementById('f_loc').value;
+        if(map && dynamicHubs[hub]) { map.flyTo(dynamicHubs[hub], 13); }
+    };
+
+    function loadHubs() {
+        onSnapshot(collection(db, "MarketHubs"), (snap) => {
+            const sel = document.getElementById('f_loc');
+            sel.innerHTML = '<option value="" disabled selected>Select Hub...</option>';
+            dynamicHubs = { ...preInstalledHubs }; hubDocMapping = {};
+            Object.keys(preInstalledHubs).sort().forEach(name => {
+                const opt = document.createElement('option'); opt.text = name; opt.value = name; sel.add(opt);
+            });
+            snap.forEach(d => {
+                const data = d.data();
+                if (!dynamicHubs[data.name]) {
+                    dynamicHubs[data.name] = [data.lat, data.lng];
+                    const opt = document.createElement('option'); opt.text = data.name; opt.value = data.name; sel.add(opt);
+                }
+                hubDocMapping[data.name] = d.id;
+            });
+        });
+    }
+
+    function loadCommodities() {
+        onSnapshot(collection(db, "Commodities"), (snap) => {
+            const sel = document.getElementById('f_item');
+            sel.innerHTML = '<option value="" disabled selected>Select Commodity...</option>';
+            ["Rice (Local)", "Beans (Brown)", "Maize", "Sorghum", "Wheat"].forEach(c => {
+                 const opt = document.createElement('option'); opt.text = c; opt.value = c; sel.add(opt);
+            });
+            snap.forEach(doc => { const opt = document.createElement('option'); opt.text = doc.data().name; opt.value = doc.data().name; sel.add(opt); });
+        });
+    }
+
+    window.addHub = async () => {
+        const name = prompt("Enter Market Hub Name:");
+        if (!name) return;
+        const coords = prompt("Enter Coordinates (Lat, Lng):", isGPSEnabled ? currentCoords : "11.8333,13.1500");
+        if (!coords || !coords.includes(',')) return alert("Invalid Coordinates.");
+        const [lat, lng] = coords.split(',').map(Number);
+        await addDoc(collection(db, "MarketHubs"), { name: name, lat: lat, lng: lng, timestamp: serverTimestamp() });
+    };
+
+    window.renameHub = async () => {
+        const currentHub = document.getElementById('f_loc').value;
+        if(!currentHub) return alert("Select a Market Hub first.");
+        const newName = prompt(`Rename "${currentHub}" to:`, currentHub);
+        if(!newName || newName === currentHub) return;
+        try { await updateDoc(doc(db, "MarketHubs", hubDocMapping[currentHub]), { name: newName }); } catch (e) { alert("Error renaming hub."); }
+    };
+
+    window.addCommodity = async () => {
+        const name = prompt("Enter commodity name:");
+        if (name) { await addDoc(collection(db, "Commodities"), { name: name, timestamp: serverTimestamp() }); }
+    };
+
+    /* 📡 SUBMIT SYSTEM (Bulletproof Version) */
+window.submitData = async () => {
+    // 1. Force clear any focus issues
+    document.activeElement.blur();
+
+    const pInput = document.getElementById('f_price');
+    const pValue = Number(pInput.value);
+    const item = document.getElementById('f_item').value;
+    const hubName = document.getElementById('f_loc').value;
+
+    // Simple validation
+    if (!pValue || pValue <= 0) return alert("Please enter a valid price number.");
+    if (!item || !hubName) return alert("Please select both a Commodity and a Hub.");
+
+    try {
+        console.log("Attempting Sync...");
+        
+        // 2. Direct Firestore Add
+        await addDoc(collection(db, "MarketReports"), { 
+            commodity: item, 
+            price: pValue, 
+            location: hubName, 
+            operator: (window.currentUserData ? window.currentUserData.name : "ALWALI ADMIN"),
+            timestamp: serverTimestamp() 
+            
+        });
+        if (auth.currentUser) {
+    const userRef = doc(db, "Users", auth.currentUser.uid);
+    await updateDoc(userRef, {
+        points: increment(10) // or any value
+    });
+}
+
+            // 🎯 SHOW POINT POPUP HERE
+            showPointPop(10);
+
+        // 3. Auto-Repair User Profile (The "Registry Fix")
+        if (auth.currentUser) {
+            const userRef = doc(db, "Users", auth.currentUser.uid);
+            await setDoc(userRef, { 
+                // CHANGE THIS LINE: Change 1 to 5
+                points: increment(5), 
+                name: (window.currentUserData ? window.currentUserData.name : "ALWALI ADMIN"),
+                role: "Admin"
+            }, { merge: true });
+        }
+
+        // --- THE FIX STARTS HERE ---
+        // 4. Trigger the Visual/Audio System instead of a popup alert
+        if (typeof triggerVisualAlerts === "function") {
+            triggerVisualAlerts(item, pValue);
+        }
+
+        pInput.value = ""; // Clear the price box
+        // ---------------------------
+
+    } catch (e) {
+        console.error("Firebase Error:", e);
+        alert("Connection Error: " + e.message);
+    }
+};
+
+
+/* 👥 UPDATED MANAGE OPERATORS (With Role & Points Editing) */
+window.manageUsers = async function() {
+    const modal = document.getElementById('opModal');
+    const list = document.getElementById('opList');
+    if (!modal || !list) return;
+
+    modal.style.display = 'flex';
+    list.innerHTML = "<p style='text-align:center; padding:20px;'>Syncing Operator Registry...</p>";
+
+    onSnapshot(collection(db, "Users"), (snap) => {
+        list.innerHTML = "";
+        snap.forEach(d => {
+            const u = d.data();
+            list.insertAdjacentHTML('beforeend', `
+                <div style="background:rgba(255,255,255,0.05); padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:bold; color:var(--gold);">${u.name || 'User'}</div>
+                            <div style="font-size:0.7rem; color:var(--dim);">${u.role || 'User'} • ${u.points || 0} PTS</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="cycleRole('${d.id}', '${u.role}')" style="background:var(--blue); border:none; color:black; font-size:0.6rem; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer;">PROMOTE</button>
+                            <button onclick="addBonus('${d.id}')" style="background:#22c55e; border:none; color:white; font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">+50 PTS</button>
+                            <button onclick="deleteUser('${d.id}')" style="background:#ef4444; border:none; color:white; font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">DEL</button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+    });
+};
+
+/* 🛠️ ADMIN HELPERS (Required for the Manage UI to work) */
+window.cycleRole = async (uid, currentRole) => {
+    const nextRole = currentRole === "Admin" ? "User" : "Admin";
+    await updateDoc(doc(db, "Users", uid), { role: nextRole });
+};
+
+    window.addBonus = async (uid) => {
+    await updateDoc(doc(db, "Users", uid), { points: increment(50) });
+};
+
+    window.deleteUser = async (uid) => {
+    if (confirm("Permanently revoke this operator's access?")) {
+        await deleteDoc(doc(db, "Users", uid));
+    }
+};
+
+    window.closeModal = (id) => {
+    const m = document.getElementById(id);
+    if(m) m.style.display = 'none';
+};
+
+    window.setFilter = (name) => {
+        if (name === "ALL") { activeFilters.clear(); activeFilters.add("ALL"); document.documentElement.style.setProperty('--pulse-color', '#38bdf8'); } 
+        else { 
+            activeFilters.delete("ALL"); 
+            if (activeFilters.has(name)) { 
+                activeFilters.delete(name); 
+                if (activeFilters.size === 0) { activeFilters.add("ALL"); document.documentElement.style.setProperty('--pulse-color', '#38bdf8'); } 
+                else { document.documentElement.style.setProperty('--pulse-color', getColor([...activeFilters][0])); }
+            } else { activeFilters.add(name); document.documentElement.style.setProperty('--pulse-color', getColor(name)); }
+        }
+        startLiveUpdates();
+    };
+
+    function updateAI(data) {
+        if (data.length < 1) return;
+        if (aiCycleInterval) clearInterval(aiCycleInterval);
+        const el = document.getElementById('aiPrediction');
+        const cheapest = [...data].sort((a, b) => a.price - b.price)[0];
+        const latest = data[0];
+        const intelPoints = [
+            { text: `🎯 BEST VALUE: ${cheapest.commodity} @ ₦${cheapest.price.toLocaleString()} in ${cheapest.location}`, glow: "rgba(34, 197, 94, 0.6)" },
+            { text: `📈 LATEST SYNC: ${latest.commodity} reported in ${latest.location}`, glow: "rgba(99, 102, 241, 0.6)" },
+            { text: `🤖 PREDICTION: ${latest.price > 70000 ? 'High Volatility' : 'Stable'} in ${latest.location}`, glow: latest.price > 70000 ? "rgba(236, 72, 153, 0.6)" : "rgba(168, 85, 247, 0.4)" }
+        ];
+        aiCycleInterval = setInterval(() => {
+            el.classList.add('cycling');
+            setTimeout(() => {
+                currentCycleIndex = (currentCycleIndex + 1) % intelPoints.length;
+                el.innerText = intelPoints[currentCycleIndex].text;
+                document.documentElement.style.setProperty('--ai-glow', intelPoints[currentCycleIndex].glow);
+                el.classList.remove('cycling');
+            }, 600);
+        }, 10000);
+    }
+
+    function startLiveUpdates() {
+        const q = query(collection(db, "MarketReports"), orderBy("timestamp", "desc"), limit(40));
+        onSnapshot(q, (snaps) => {
+            const body = document.getElementById('ledgerBody');
+            const ticker = document.getElementById('liveTicker');
+            const tgl = document.getElementById('chartToggles');
+            
+            if (body) body.innerHTML = ""; 
+            if (ticker) ticker.innerHTML = "";
+            
+            let dataByCommodity = {};
+            let allLabels = new Set();
+            let uniqueItemsInData = new Set(["ALL"]);
+            
+            // 1. Fill the global brain and the local array
+            allReports = snaps.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+            let reportArray = allReports;
+
+            // Clear old markers
+            if (typeof activeMarkers !== 'undefined') {
+                for (let id in activeMarkers) if(map) map.removeLayer(activeMarkers[id]);
+                activeMarkers = {};
+            }
+
+            snaps.forEach((d) => {
+                const r = d.data();
+                if(!r.timestamp || !r.timestamp.toDate) return; // Safety check
+
+                const dateObj = r.timestamp.toDate();
+                const time = dateObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                uniqueItemsInData.add(r.commodity); 
+
+                if(typeof activeFilters !== 'undefined' && !activeFilters.has("ALL") && !activeFilters.has(r.commodity)) return;
+                const cColor = (typeof getColor2 === "function") ? getColor2(r.commodity) : "#38bdf8";
+                
+                if(!dataByCommodity[r.commodity]) dataByCommodity[r.commodity] = [];
+                dataByCommodity[r.commodity].push({x: time, y: r.price}); 
+                allLabels.add(time);
+                
+                if (ticker) {
+                    ticker.insertAdjacentHTML('beforeend', `<span class="ticker-item">${r.commodity.toUpperCase()}: <span style="color:${cColor}">₦${r.price.toLocaleString()}</span> <span style="font-size:0.6rem; opacity:0.7;"> @ ${r.location}</span></span>`);
+                }
+                
+                let safeCoords = [11.8333, 13.1500]; 
+                if (r.gps && typeof r.gps === "string" && r.gps.includes(',')) {
+                    const parts = r.gps.split(',').map(Number);
+                    if (!isNaN(parts[0]) && !isNaN(parts[1])) safeCoords = parts;
+                }
+
+                if(typeof map !== 'undefined' && map) {
+                    activeMarkers[d.id] = L.circleMarker(safeCoords, {
+                        radius: 8,
+                        color: cColor,
+                        fillOpacity: 0.8
+                    })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="mp-pop-card">
+                            <div class="mp-pop-title">${r.commodity}</div>
+                            <div class="mp-pop-price">₦${r.price.toLocaleString()}</div>
+                            <div class="mp-pop-loc">📍 ${r.location}</div>
+                            <button class="mp-pop-btn" onclick="openStreetView(${safeCoords[0]}, ${safeCoords[1]})">👁️ View Market</button>
+                        </div>
+                    `);
+                }
+                
+                if (body) {
+                    body.insertAdjacentHTML('beforeend', `<tr><td>${time}</td><td style="color:${cColor}">${r.commodity}</td><td>₦${r.price.toLocaleString()}</td><td><button class="btn-mini" style="background:#ef4444" onclick="deleteReport('${d.id}')">DEL</button></td></tr>`);
+                }
+            });
+
+            if (tgl) {
+                tgl.innerHTML = "";
+                uniqueItemsInData.forEach(u => { 
+                    const chip = document.createElement('div'); 
+                    chip.className = `filter-chip ${(typeof activeFilters !== 'undefined' && activeFilters.has(u)) ? 'active' : ''}`; 
+                    chip.innerText = u; 
+                    chip.onclick = () => setFilter(u); 
+                    tgl.appendChild(chip); 
+                });
+            }
+
+            // Chart Updates
+            if (typeof priceChart !== 'undefined' && priceChart) {
+                const sortedLabels = Array.from(allLabels).reverse();
+                priceChart.data.labels = sortedLabels;
+                priceChart.data.datasets = Object.keys(dataByCommodity).map(name => ({ 
+                    label: name, 
+                    data: sortedLabels.map(l => dataByCommodity[name].find(e => e.x === l)?.y || null), 
+                    borderColor: (typeof getColor === "function") ? getColor(name) : "#38bdf8", 
+                    tension: 0.4, 
+                    spanGaps: true 
+                }));
+                priceChart.update();
+            }
+
+            if (typeof updateAI === "function") updateAI(reportArray);
+            
+            const sessionEl = document.getElementById('sessionCount');
+            if (sessionEl) sessionEl.innerText = snaps.size;
+            
+            // Only beep if this is NOT the first time the data is loading
+            if (!isInitialLoad && snaps.docChanges().some(change => change.type === "added")) {
+            playBeep(2); // Notification sound for new data
+    }
+            isInitialLoad = false;
+        });
+    }
+
+    /* 🛠️ NAVIGATION & MENU ENGINE (Updated) */
+/* 🛠️ NAVIGATION & MENU ENGINE */
+    window.toggleMenu = (event) => {
+        if (event) event.stopPropagation(); 
+        const menu = document.getElementById('optionsMenu');
+        menu.classList.toggle('show');
+    };
+
+    // Close menu when clicking anywhere else
+    document.addEventListener('click', (event) => {
+        const menu = document.getElementById('optionsMenu');
+        const gear = document.querySelector('.gear-icon');
+        if (menu && menu.classList.contains('show')) {
+            if (!menu.contains(event.target) && !gear.contains(event.target)) {
+                menu.classList.remove('show');
+            }
+        }
+    });
+
+    window.deleteReport = async (id) => { if(confirm("Confirm deletion?")) await deleteDoc(doc(db, "MarketReports", id)); };
+    window.toggleTheme = () => document.body.classList.toggle('light-mode');
+    window.triggerUpdate = () => { location.reload(); };
+    /* 🔄 AUTH VIEW SWITCHER */
+    window.showRegister = () => {
+    const login = document.getElementById('loginCard');
+    const register = document.getElementById('registerCard');
+    if (login) login.style.display = 'none';
+    if (register) register.style.display = 'block';
+};
+
+     window.showLogin = () => {
+    const login = document.getElementById('loginCard');
+    const register = document.getElementById('registerCard');
+    if (register) register.style.display = 'none';
+    if (login) login.style.display = 'block';
+};
+    /* 🔔 Optimized Beep System (Safe Version) */
+    function playBeep(times = 3) {
+    // Only try to play if the browser allows it
+    if (!window.audioEnabled) return; 
+
+    let count = 0;
+    const beep = () => {
+        const audio = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
+        audio.play().catch(e => {
+            console.log("Audio play blocked: Waiting for user click.");
+            window.audioEnabled = false; // Disable until we get a click
+        });
+        count++;
+        if (count < times) setTimeout(beep, 250);
+    };
+    beep();
+}
+
+// Enable audio as soon as the user clicks ANYTHING (like the login button)
+window.addEventListener('click', () => { window.audioEnabled = true; }, { once: true });
+/* 📈 Live Price Spike Alert */
+function detectSpike(item, newPrice) {
+    // Look at the live reports we've fetched from Firebase
+    // Assuming 'allReports' is your global array of market data
+    if (typeof allReports === 'undefined' || allReports.length === 0) return;
+
+    const previousReport = allReports.find(r => r.commodity === item);
+
+    if (previousReport) {
+        const oldPrice = previousReport.price;
+        const change = ((newPrice - oldPrice) / oldPrice) * 100;
+
+        // Alert if price moves more than 20%
+        if (Math.abs(change) > 20) {
+            const direction = change > 0 ? "SURGE 📈" : "CRASH 📉";
+            alert(`⚠ ${direction} detected for ${item}! Price changed by ${change.toFixed(1)}%`);
+            playBeep(2); // Double beep for warnings
+        }
+    }
+}
+
+/* 📊 Live Volatility Indicator */
+function getVolatility(item) {
+    if (typeof allReports === 'undefined') return "Loading...";
+    
+    const prices = allReports
+        .filter(r => r.commodity === item)
+        .map(r => r.price);
+
+    if (prices.length < 2) return "Stable ✅";
+
+    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length;
+
+    // Adjusted thresholds for Naira values
+    if (variance > 50000000) return "High 🔥"; 
+    if (variance > 10000000) return "Medium ⚠";
+    return "Low ✅";
+}
+
+/* 🔍 Search & Filter System */
+window.filterData = function () {
+    const selected = document.getElementById("filterItem")?.value || "";
+    const searchBox = document.getElementById("searchBox")?.value.toLowerCase() || "";
+    let rows = document.querySelectorAll("#ledgerBody tr");
+
+    rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        // Shows the row if it matches BOTH the dropdown and the search text
+        const matchesDropdown = !selected || text.includes(selected.toLowerCase());
+        const matchesSearch = !searchBox || text.includes(searchBox);
+
+        r.style.display = (matchesDropdown && matchesSearch) ? "" : "none";
+    });
+};
+
+/* 🎨 Global Commodity Colors */
+function getColor2(item) {
+    const colors = {
+        "Maize": "#ffce56",
+        "Rice": "#36a2eb",
+        "Beans": "#4bc0c0",
+        "Sorghum": "#9966ff",
+        "Wheat": "#ff9f40",
+        "Soya Beans": "#8bc34a",
+        "Onions": "#e91e63"
+    };
+    return colors[item] || "#ffffff";
+}
+
+/* 🧭 Navigation & UI Bridges */
+window.showRegister = () => {
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('registerCard').style.display = 'block';
+};
+
+window.showLogin = () => {
+    document.getElementById('registerCard').style.display = 'none';
+    document.getElementById('loginCard').style.display = 'block';
+};
+
+// Global function mapping for HTML buttons
+window.submitReport = window.submitData; 
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+
+/* 📢 Market Ads Logic */
+function postAd() {
+    const input = document.getElementById("adInput");
+    const feed = document.getElementById("adsFeed");
+
+    if (!input || !feed) {
+        console.error("Ad elements not found");
+        return;
+    }
+
+    if (!input.value.trim()) return;
+
+    const ad = document.createElement("div");
+    ad.style.padding = "8px";
+    ad.style.border = "1px dashed var(--dim)";
+    ad.style.borderRadius = "8px";
+    ad.style.marginBottom = "8px";
+    ad.style.fontSize = "0.75rem";
+    ad.innerHTML = input.value;
+
+    feed.prepend(ad);
+    input.value = "";
+
+    localStorage.setItem("adsFeed", feed.innerHTML);
+}
+// Make postAd accessible to the button
+window.postAd = postAd;
+
+/* 🔄 Unified Initialization */
+window.onload = () => {
+    // Restore Social Feed
+    const savedSocial = localStorage.getItem("socialFeed");
+    if (savedSocial && document.getElementById("socialFeed")) {
+        document.getElementById("socialFeed").innerHTML = savedSocial;
+    }
+
+    // Restore Ads Feed
+    const savedAds = localStorage.getItem("adsFeed");
+    if (savedAds && document.getElementById("adsFeed")) {
+        document.getElementById("adsFeed").innerHTML = savedAds;
+    }
+
+    // Reset Viewport
+    window.scrollTo(0, 0);
+};
+
+// Start System Notification
+if (typeof showToast === "function") {
+    showToast("Bridge Connection Active", "🌉");
+}
+
+</script>
+</body>
+</html>
