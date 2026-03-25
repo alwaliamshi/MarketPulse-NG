@@ -608,6 +608,67 @@ h3 {
 .grid-frame {
     gap: 10px; /* controls spacing between columns */
 }
+
+/* 📱 MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+
+    body {
+        padding: 10px;
+    }
+
+    /* Stack all columns vertically */
+    .main-container,
+    .dashboard,
+    .grid-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px;
+    }
+
+    /* Make all panels full width */
+    .card,
+    .panel,
+    .box,
+    .section {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* Fix form inputs */
+    input, select, button {
+        width: 100% !important;
+        font-size: 16px;
+    }
+
+    /* Chart & map scaling */
+    canvas, iframe, .map-container {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Reduce header clutter */
+    header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+
+    /* Buttons spacing */
+    button {
+        padding: 12px;
+    }
+}
+/* Desktop layout fix */
+@media (min-width: 769px) {
+    .main-container {
+        display: grid;
+        grid-template-columns: 1fr 2fr 1fr;
+        gap: 15px;
+    }
+}
+.chart-container {
+    overflow-x: auto;
+}
     /* --- END OF CSS --- */
     </style>
 </head>
@@ -647,10 +708,10 @@ h3 {
             <button class="btn btn-login" onclick="handleRegister()" style="margin-bottom: 10px;">Register Account</button>
             <button class="reg-link" onclick="showLogin()">Back to Login</button>
         </div>
-    </div> </div>
+    </div>
+</div>
 
-
-<div id="mainApp">
+<div id="mainApp" style="display:none;">
         <header class="top-nav">
         <div class="branding-core">
             <div id="logoContainer" class="custom-logo-container">
