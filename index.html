@@ -635,10 +635,16 @@ h3 {
     }
 
     /* Fix form inputs */
-    input, select, button {
-        width: 100% !important;
-        font-size: 16px;
-    }
+    /* Only stretch form elements where needed */
+.ui-panel input,
+.ui-panel select {
+    width: 100%;
+}
+
+/* Buttons behave normally unless explicitly styled */
+button {
+    width: auto;
+}
 
     /* Chart & map scaling */
     canvas, iframe, .map-container {
@@ -668,6 +674,252 @@ h3 {
 }
 .chart-container {
     overflow-x: auto;
+}
+
+/* 📱 MOBILE FIRST (default) */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+/* 🧠 TABLET */
+@media (min-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 🖥️ DESKTOP */
+@media (min-width: 1024px) {
+    .main-grid {
+        grid-template-columns: 320px 1fr 420px;
+    }
+}
+
+/* 📢 FIX ADS BAR (mobile-safe) */
+.ad-bar {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.ad-input {
+    flex: 1;
+    min-width: 0; /* 🔥 prevents shrinking bug */
+}
+
+.ad-btn {
+    width: auto !important;   /* 🔥 overrides your global button rule */
+    flex-shrink: 0;
+    padding: 8px 12px;
+}
+
+/* Right panel structure */
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Section spacing */
+.right-panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Ledger styling */
+.ledger-box {
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+    padding: 8px;
+}
+
+.ledger-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* System status styling */
+.status-box {
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.status-card {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid #10b981;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.session-info {
+    font-size: 0.8rem;
+    color: var(--dim);
+}
+
+/* 🌟 MODERN SYSTEM STATUS */
+.modern-status {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Main green card */
+.status-card-modern {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px 14px;
+    border-radius: 14px;
+
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+/* Glowing status dot */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+/* Text styling */
+.status-title {
+    font-weight: 900;
+    color: #10b981;
+    font-size: 0.85rem;
+}
+
+.status-sub {
+    font-size: 0.7rem;
+    color: var(--dim);
+}
+
+/* Session row */
+.session-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 8px 10px;
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.05);
+    font-size: 0.8rem;
+}
+
+/* Highlight number */
+.session-row span:last-child {
+    font-weight: 900;
+    color: var(--white);
+}
+
+.status-dot {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 5px #10b981; }
+    50% { box-shadow: 0 0 15px #10b981; }
+    100% { box-shadow: 0 0 5px #10b981; }
+}
+
+/* 🌐 SOCIAL PANEL */
+.social-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Title */
+.social-title {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: var(--blue);
+}
+
+/* Chat area */
+.social-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Input bar */
+.social-input-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Input */
+.social-input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+}
+
+/* Send button */
+.social-send {
+    width: 40px !important;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--blue);
+    color: white;
+    cursor: pointer;
+}
+
+/* Chat bubble */
+.msg {
+    max-width: 75%;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    align-self: flex-start;
+}
+
+/* My messages (right side) */
+.msg.me {
+    background: var(--blue);
+    align-self: flex-end;
+}
+
+/* Username */
+.msg-user {
+    font-size: 0.65rem;
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+/* Text */
+.msg-text {
+    font-size: 0.85rem;
+    margin-top: 2px;
+}
+
+/* Time */
+.msg-time {
+    font-size: 0.6rem;
+    text-align: right;
+    opacity: 0.6;
+    margin-top: 2px;
 }
     /* --- END OF CSS --- */
     </style>
@@ -747,7 +999,7 @@ h3 {
         <div class="ticker-content" id="liveTicker">Initializing intelligence feed...</div>
     </div>
 
-    <div class="grid-frame" style="grid-template-columns: 320px 1fr 420px;">
+    <div class="grid-frame main-grid">
         <aside class="ui-panel compact-form">
 
             <h3 style="margin-bottom:20px; color:var(--blue); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px;">Submit Market Price</h3>
@@ -789,38 +1041,58 @@ h3 {
             <div id="map"></div>
         </main>
 
-        <aside class="ui-panel" style="display: flex; flex-direction: column;">
-            <div class="ai-feed-box" id="aiGlowBox">
-                <span class="ai-tag">AI PREDICTIVE INSIGHT</span>
-                <div id="aiPrediction" class="ai-insight">Awaiting Live Ledger Data...</div>
-            </div>
+        <aside class="ui-panel right-panel">
 
-            <h3 style="margin: 20px 0 10px 0;">Live Market Ledger</h3>
-            
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding-right: 5px;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
-                        <tr style="font-size: 0.75rem; color: var(--dim);">
-                            <th style="text-align:left; padding: 10px;">Time</th>
-                            <th style="text-align:left;">Item</th>
-                            <th style="text-align:left;">Price</th>
-                            <th style="text-align:right; padding-right:10px;">Action</th>
+    <div class="ai-feed-box" id="aiGlowBox">
+        <span class="ai-tag">AI PREDICTIVE INSIGHT</span>
+        <div id="aiPrediction" class="ai-insight">Awaiting Live Ledger Data...</div>
+    </div>
+
+    <!-- 📊 LEDGER SECTION -->
+    <div class="right-panel-section">
+        <h3>Live Market Ledger</h3>
+
+        <div class="ledger-box">
+            <div class="ledger-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Item</th>
+                            <th>Price</th>
+                            <th style="text-align:right;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="ledgerBody"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
 
-            <div style="margin-top:25px; border-top: 1px solid var(--border); padding-top:15px;">
-                <h3 style="margin-bottom:15px;">System Status</h3>
-                <div style="padding:15px; background:rgba(16, 185, 129, 0.1); border:1px solid #10b981; border-radius:18px; color:#10b981; margin-bottom:15px;">
-                    <span style="font-weight:900;">● NODE ONLINE</span>
-                    <p style="font-size:0.7rem; margin-top:5px;">Cloud Sync: Active (V18.2)</p>
-                </div>
-                <div style="font-size:0.8rem; color:var(--dim);">Session Entries: <span id="sessionCount" style="color:var(--white); font-weight:bold;">0</span></div>
-            </div>
-        </aside>
-    </div> <div class="grid-frame" style="margin-top: 30px; grid-template-columns: 320px 1fr 420px; row-gap: 20px;">
+    <!-- 🟢 SYSTEM STATUS SECTION -->
+    <div class="right-panel-section">
+        <h3>System Status</h3>
+
+        <div class="status-box modern-status">
+
+    <div class="status-card-modern">
+        <div class="status-dot"></div>
+        <div>
+            <div class="status-title">NODE ONLINE</div>
+            <div class="status-sub">Cloud Sync: Active (V18.2)</div>
+        </div>
+    </div>
+
+    <div class="session-row">
+        <span>Session Entries</span>
+        <span id="sessionCount">0</span>
+    </div>
+
+</div>
+
+</aside>
+
+        
         
         <aside class="ui-panel">
              <h3 style="color:var(--gold); font-size:14px; margin-bottom:15px; text-transform: uppercase;">🏆 Top Contributors</h3>
@@ -829,20 +1101,28 @@ h3 {
              </table>
         </aside>
 
-        <aside class="ui-panel" style="min-height: 300px; display: flex; flex-direction: column;">
-    <h3 style="color:var(--blue); font-size:14px; margin-bottom:15px;">🌐 Social Hub</h3>
-    <div id="socialFeed" style="font-size:0.8rem; color:var(--dim); overflow-y:auto; flex:1;">
-        Intelligence Feed Initializing...
+        <aside class="ui-panel social-panel">
+
+    <h3 class="social-title">🌐 Intelligence Feed</h3>
+
+    <!-- CHAT AREA -->
+    <div id="socialFeed" class="social-feed"></div>
+
+    <!-- INPUT BAR -->
+    <div class="social-input-bar">
+        <input id="socialInput" class="social-input" placeholder="Type intel update...">
+        <button onclick="postSocial()" class="social-send">➤</button>
     </div>
+
 </aside>
 
         <aside class="ui-panel" style="display: flex; flex-direction: column;">
     <h3 style="color:var(--white); font-size:14px; margin-bottom:10px;">📢 Market Ads</h3>
 
-    <div style="display:flex; gap:5px; margin-bottom:10px;">
-        <input id="adInput" class="field" placeholder="Post an ad..." style="flex:1;">
-        <button class="btn-mini" onclick="postAd()">Add</button>
-    </div>
+    <div class="ad-bar">
+    <input id="adInput" class="field ad-input" placeholder="Post an ad...">
+    <button class="btn-mini ad-btn" onclick="postAd()">Add</button>
+</div>
 
     <div id="adsFeed" style="font-size:0.8rem; color:var(--dim); max-height:200px; overflow-y:auto;">
         No ads yet...
@@ -984,55 +1264,7 @@ h3 {
             alert("❌ System Error: Vouch transmission failed.");
         }
     };
-        /* 6. 🔄 AUTH ENGINE */
-        onAuthStateChanged(auth, async (user) => {
-        console.log("Auth System: Checking user...");
-        const welcomeView = document.getElementById('welcomeView');
-        const mainApp = document.getElementById('mainApp');
-
-        if (user) {
-            console.log("Auth System: User detected ->", user.email);
-            
-            // 1. Open the UI immediately
-            if (typeof enterApp === "function") enterApp();
-
-            try {
-                // 2. Fetch User Profile
-                const userRef = doc(db, "Users", user.uid);
-                const userSnap = await getDoc(userRef);
-                
-                // 3. Set Global Data (provides defaults if the doc doesn't exist yet)
-                const userData = userSnap.exists() ? userSnap.data() : { 
-                    name: "Operator", 
-                    role: "User", 
-                    points: 0,
-                    level: 0 
-                };
-
-                window.currentUserData = userData;
-
-                // 4. Run Auto-Repair (Ensures the database has all hierarchy fields)
-                await window.repairUserProfile(user.uid, userData);
-                
-                // 5. Trigger Role-Based UI
-                if (typeof updateUIForRole === "function") updateUIForRole(user); 
-
-                // 6. Start Services
-                if (typeof initMap === "function") initMap();
-                if (typeof startLiveUpdates === "function") startLiveUpdates(); 
-                if (typeof loadCommodities === "function") loadCommodities(); 
-                if (typeof loadHubs === "function") loadHubs();
-                if (typeof startLeaderboardUpdates === "function") startLeaderboardUpdates(); 
-                
-            } catch (error) {
-                console.error("Dashboard Load Error:", error);
-            }
-        } else {
-            console.log("Auth System: No user found.");
-            if (welcomeView) welcomeView.style.display = 'flex';
-            if (mainApp) mainApp.style.display = 'none';
-        }
-    });
+        
     
     // 🔔 TOAST SYSTEM
 window.showToast = function(message, icon = "📡") {
@@ -1056,24 +1288,64 @@ window.showToast = function(message, icon = "📡") {
 };
 
 // 🌐 SOCIAL HUB
-window.postSocial = function() {
+
+/* 🌐 POST SOCIAL MESSAGE (Patched) */
+window.postSocial = async function() {
     const input = document.getElementById("socialInput");
-    const feed = document.getElementById("socialFeed");
+    if (!input || !input.value.trim()) return;
 
-    if (!input || !feed) return;
-    if (!input.value.trim()) return;
+    try {
+        await addDoc(collection(db, "SocialFeed"), {
+            message: input.value,
+            // ✅ This calls your helper function to get the best name
+            user: getUserDisplayName(), 
+            timestamp: serverTimestamp()
+        });
 
-    const msg = document.createElement("div");
-    msg.style.padding = "8px";
-    msg.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
-    msg.innerHTML = `<strong>You:</strong> ${input.value}`;
-
-    feed.prepend(msg);
-    input.value = "";
-
-    localStorage.setItem("socialFeed", feed.innerHTML);
+        input.value = "";
+    } catch (error) {
+        console.error("Social Hub Error:", error);
+        if (typeof showToast === "function") showToast("⚠️ Failed to post update", "❌");
+    }
 };
 
+function startSocialFeed() {
+
+    const q = query(
+        collection(db, "SocialFeed"),
+        orderBy("timestamp", "asc")
+    );
+
+    onSnapshot(q, (snapshot) => {
+        const feed = document.getElementById("socialFeed");
+        if (!feed) return;
+
+        feed.innerHTML = "";
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+
+            const time = data.timestamp?.toDate
+                ? data.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                : "";
+
+            const isMe = data.user === window.currentUserData?.name;
+
+            const msg = document.createElement("div");
+            msg.className = isMe ? "msg me" : "msg";
+
+            msg.innerHTML = `
+                <div class="msg-user">${data.user}</div>
+                <div class="msg-text">${data.message}</div>
+                <div class="msg-time">${time}</div>
+            `;
+
+            feed.appendChild(msg);
+        });
+
+        feed.scrollTop = feed.scrollHeight;
+    });
+}
 // 📢 MARKET ADS
 window.postAd = function() {
     const input = document.getElementById("adInput");
@@ -1270,6 +1542,8 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log("Auth System: User detected ->", user.email);
         
+        if (typeof syncOfflineData === "function") syncOfflineData();
+        
         // 1. Open the UI immediately
         if (typeof enterApp === "function") enterApp();
 
@@ -1278,12 +1552,26 @@ onAuthStateChanged(auth, async (user) => {
             const userRef = doc(db, "Users", user.uid);
             const userSnap = await getDoc(userRef);
             
-            // 3. Set Global Data
-            const userData = userSnap.exists() ? userSnap.data() : { name: "Operator", role: "User", points: 0 };
+             // 3. Set Global Data
+const userData = userSnap.exists() ? userSnap.data() : { 
+    name: "", // Leave empty to allow helper function to use email prefix
+    role: "User",
+    points: 0,
+    level: 0
+};
 
-            window.currentUserData = userData;
+window.currentUserData = userData;
 
-            await repairUserProfile(user.uid, userData);
+// Ensure the database record is healthy
+await repairUserProfile(user.uid, userData);
+
+// 🔁 Force UI refresh AFTER data is ready
+// This gives the app 100ms to ensure the global data is accessible
+setTimeout(() => {
+    if (typeof updateUIForRole === "function") {
+        updateUIForRole(user);
+    }
+}, 100);
             
             // 4. Trigger Master Admin Bypass or Standard UI
             updateUIForRole(user); 
@@ -1293,7 +1581,8 @@ onAuthStateChanged(auth, async (user) => {
             if (typeof startLiveUpdates === "function") startLiveUpdates(); 
             if (typeof loadCommodities === "function") loadCommodities(); 
             if (typeof loadHubs === "function") loadHubs();
-            if (typeof startLeaderboardUpdates === "function") startLeaderboardUpdates(); 
+            if (typeof startLeaderboardUpdates === "function") startLeaderboardUpdates();
+            if (typeof startSocialFeed === "function") startSocialFeed();
             
         } catch (error) {
             console.error("Dashboard Load Error:", error);
@@ -1338,31 +1627,45 @@ onAuthStateChanged(auth, async (user) => {
 };
 
 /* 👤 USER INTERFACE & ROLE ENGINE (Cleaned & Locked) */
+    /* 🆔 USER IDENTITY HELPER */
+function getUserDisplayName() {
+    if (window.currentUserData?.name) return window.currentUserData.name;
+
+    if (auth.currentUser?.email) {
+        return auth.currentUser.email.split("@")[0];
+    }
+
+    return "Operator";
+}
+
+/* 👤 ROLE & UI ENGINE */
 function updateUIForRole(user) {
     if (!user) return;
 
-    const nameEl = document.getElementById('displayUserName') || document.getElementById('opName');
-    const roleEl = document.getElementById('displayUserRole') || document.getElementById('opRole');
+    const nameEl = document.getElementById('displayUserName');
+    const roleEl = document.getElementById('displayUserRole');
     const adminMenu = document.getElementById('adminControls');
 
-    // 🏆 MASTER ADMIN LOCK (Checks email string directly)
+    const displayName = getUserDisplayName();
+
+    // 👑 MASTER ADMIN
     if (user.email === "alwali7983@gmail.com") {
-        if (nameEl) nameEl.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">ALWALI UMARA AMSHI</span>`;
-        if (roleEl) roleEl.innerHTML = `<span style="color:#f59e0b; font-size:0.7rem; font-weight:900;">👑 MASTER ADMIN</span>`;
-        if (adminMenu) adminMenu.style.display = "block";
-        window.currentUserData = { name: "ALWALI UMARA AMSHI", role: "Admin", points: 1000 };
-        return; // ✅ Stops here so the data below never overwrites you
+        nameEl.innerHTML = `<span style="color:#f59e0b; font-weight:bold;">${displayName.toUpperCase()}</span>`;
+        roleEl.innerHTML = `<span style="color:#f59e0b; font-size:0.7rem; font-weight:900;">👑 MASTER ADMIN</span>`;
+        adminMenu.style.display = "block";
+        return;
     }
 
-    // 👤 STANDARD USER LOGIC
-    const userData = window.currentUserData || {};
-    if (nameEl) nameEl.innerText = (userData.name || "Field Reporter").toUpperCase();
-    if (roleEl) roleEl.innerText = userData.role === "Admin" ? "Administrator Access" : "Field Agent";
-    if (adminMenu) adminMenu.style.display = (userData.role === "Admin") ? "block" : "none";
+    // 👤 NORMAL USERS
+    nameEl.innerText = displayName.toUpperCase();
+    roleEl.innerText = window.currentUserData?.role || "Field Agent";
+
+    adminMenu.style.display = (window.currentUserData?.role === "Admin") ? "block" : "none";
 }
 
-    /* 🏆 ENHANCED LEADERBOARD UPDATES */
+/* 🏆 ENHANCED LEADERBOARD UPDATES */
 function startLeaderboardUpdates() {
+
 
     // 🛑 STOP duplicate listeners
     if (leaderboardStarted) return;
@@ -1553,68 +1856,79 @@ board.appendChild(row);
         if (name) { await addDoc(collection(db, "Commodities"), { name: name, timestamp: serverTimestamp() }); }
     };
 
-    /* 📡 SUBMIT SYSTEM (Bulletproof Version) */
-window.submitData = async () => {
-    // 1. Force clear any focus issues
-    document.activeElement.blur();
+    /* 📡 SUBMIT SYSTEM (Bulletproof Version with Offline Backup) */
+window.submitData = async function () {
+    const name = document.getElementById("f_rep_name").value.trim();
+    const phone = document.getElementById("f_rep_phone").value.trim();
+    const item = document.getElementById("f_item").value;
+    const location = document.getElementById("f_loc").value;
+    const price = parseFloat(document.getElementById("f_price").value);
 
-    const pInput = document.getElementById('f_price');
-    const pValue = Number(pInput.value);
-    const item = document.getElementById('f_item').value;
-    const hubName = document.getElementById('f_loc').value;
+    // 1. Validation check
+    if (!name || !phone || !item || !location || !price) {
+        return showToast("⚠️ Fill all fields", "⚠️");
+    }
 
-    // Simple validation
-    if (!pValue || pValue <= 0) return alert("Please enter a valid price number.");
-    if (!item || !hubName) return alert("Please select both a Commodity and a Hub.");
+    // ✅ 2. GPS COORDINATE CAPTURE
+    // If currentCoords is available, we use it. Otherwise, we send "0,0".
+    const gpsString = (currentCoords && currentCoords.lat) 
+        ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}` 
+        : "0, 0";
 
+    // 💾 3. OFFLINE BACKUP (Updated to include GPS)
     try {
-        console.log("Attempting Sync...");
-        
-        // 2. Direct Firestore Add
-        await addDoc(collection(db, "MarketReports"), { 
-            commodity: item, 
-            price: pValue, 
-            location: hubName, 
-            operator: (window.currentUserData ? window.currentUserData.name : "ALWALI ADMIN"),
-            timestamp: serverTimestamp() 
-            
+        let localData = JSON.parse(localStorage.getItem("offlineData") || "[]");
+        localData.push({
+            name, phone, item, location, price,
+            gps: gpsString, // 📍 Stored locally for offline map sync
+            timestamp: new Date().toISOString(),
+            status: "pending_sync"
         });
-        if (auth.currentUser) {
-    const userRef = doc(db, "Users", auth.currentUser.uid);
-    await updateDoc(userRef, {
-        points: increment(10) // or any value
-    });
-}
-
-            // 🎯 SHOW POINT POPUP HERE
-            showPointPop(10);
-
-        // 3. Auto-Repair User Profile (The "Registry Fix")
-        if (auth.currentUser) {
-            const userRef = doc(db, "Users", auth.currentUser.uid);
-            await setDoc(userRef, { 
-                // CHANGE THIS LINE: Change 1 to 5
-                points: increment(5), 
-                name: (window.currentUserData ? window.currentUserData.name : "ALWALI ADMIN"),
-                role: "Admin"
-            }, { merge: true });
-        }
-
-        // --- THE FIX STARTS HERE ---
-        // 4. Trigger the Visual/Audio System instead of a popup alert
-        if (typeof triggerVisualAlerts === "function") {
-            triggerVisualAlerts(item, pValue);
-        }
-
-        pInput.value = ""; // Clear the price box
-        // ---------------------------
-
+        localStorage.setItem("offlineData", JSON.stringify(localData));
     } catch (e) {
-        console.error("Firebase Error:", e);
-        alert("Connection Error: " + e.message);
+        console.error("Local storage error:", e);
+    }
+
+    // ☁️ 4. FIREBASE SUBMISSION
+    try {
+        await addDoc(collection(db, "MarketData"), {
+            name,
+            phone,
+            item,
+            location,
+            price,
+            gps: gpsString, // ✅ This maps the report on your Leaflet map!
+            userId: auth.currentUser?.uid || "anonymous",
+            // ✅ Using your new helper for clean names
+            userName: typeof getUserDisplayName === "function" ? getUserDisplayName() : "Operator",
+            timestamp: serverTimestamp()
+        });
+
+        showToast("✅ Data & GPS Synced", "📍");
+        
+        // Clear price field for next entry
+        document.getElementById("f_price").value = "";
+    } catch (err) {
+        console.error("Firebase Sync Failed:", err);
+        showToast("📡 Saved Offline (No Signal)", "💾");
     }
 };
 
+window.syncOfflineData = async function () {
+    const data = JSON.parse(localStorage.getItem("offlineData") || "[]");
+
+    if (data.length === 0) return;
+
+    for (let entry of data) {
+        await addDoc(collection(db, "MarketData"), {
+            ...entry,
+            timestamp: serverTimestamp()
+        });
+    }
+
+    localStorage.removeItem("offlineData");
+    showToast("☁️ Offline data synced", "🚀");
+};
 
 /* 👥 UPDATED MANAGE OPERATORS (With Role & Points Editing) */
 window.manageUsers = async function() {
@@ -1683,135 +1997,174 @@ window.cycleRole = async (uid, currentRole) => {
     };
 
     function updateAI(data) {
-        if (data.length < 1) return;
-        if (aiCycleInterval) clearInterval(aiCycleInterval);
-        const el = document.getElementById('aiPrediction');
-        const cheapest = [...data].sort((a, b) => a.price - b.price)[0];
-        const latest = data[0];
-        const intelPoints = [
-            { text: `🎯 BEST VALUE: ${cheapest.commodity} @ ₦${cheapest.price.toLocaleString()} in ${cheapest.location}`, glow: "rgba(34, 197, 94, 0.6)" },
-            { text: `📈 LATEST SYNC: ${latest.commodity} reported in ${latest.location}`, glow: "rgba(99, 102, 241, 0.6)" },
-            { text: `🤖 PREDICTION: ${latest.price > 70000 ? 'High Volatility' : 'Stable'} in ${latest.location}`, glow: latest.price > 70000 ? "rgba(236, 72, 153, 0.6)" : "rgba(168, 85, 247, 0.4)" }
-        ];
-        aiCycleInterval = setInterval(() => {
-            el.classList.add('cycling');
-            setTimeout(() => {
-                currentCycleIndex = (currentCycleIndex + 1) % intelPoints.length;
-                el.innerText = intelPoints[currentCycleIndex].text;
-                document.documentElement.style.setProperty('--ai-glow', intelPoints[currentCycleIndex].glow);
-                el.classList.remove('cycling');
-            }, 600);
-        }, 10000);
+    if (!data || data.length < 1) return;
+    if (aiCycleInterval) clearInterval(aiCycleInterval);
+
+    const el = document.getElementById('aiPrediction');
+    if (!el) return;
+
+    // 1. Calculate Analytics
+    const avg = data.reduce((sum, d) => sum + (Number(d.price) || 0), 0) / data.length;
+    const latest = data[0];
+    const cheapest = [...data].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0))[0];
+
+    // 2. Generate Smart Insight
+    let marketSignal = "⚖️ Market stable — no major movement";
+    let signalGlow = "rgba(168, 85, 247, 0.4)";
+
+    if (latest.price > avg) {
+        marketSignal = "📈 Price surge detected — sellers dominating";
+        signalGlow = "rgba(239, 68, 68, 0.6)"; // Red glow for surge
+    } else if (latest.price < avg) {
+        marketSignal = "📉 Price drop — buying opportunity detected";
+        signalGlow = "rgba(34, 197, 94, 0.6)"; // Green glow for drop
     }
+
+    // 3. Define the Intelligence Points
+    const intelPoints = [
+        { text: `🎯 BEST VALUE: ${cheapest.commodity} @ ₦${cheapest.price.toLocaleString()} in ${cheapest.location}`, glow: "rgba(34, 197, 94, 0.6)" },
+        { text: `🤖 AI SIGNAL: ${marketSignal}`, glow: signalGlow },
+        { text: `📊 AVG MARKET PRICE: ₦${Math.round(avg).toLocaleString()}`, glow: "rgba(56, 189, 248, 0.6)" }
+    ];
+
+    // 4. Start the Cycle
+    let currentCycleIndex = 0;
+    el.innerText = intelPoints[0].text; // Set initial text
+
+    aiCycleInterval = setInterval(() => {
+        el.classList.add('cycling');
+        setTimeout(() => {
+            currentCycleIndex = (currentCycleIndex + 1) % intelPoints.length;
+            el.innerText = intelPoints[currentCycleIndex].text;
+            document.documentElement.style.setProperty('--ai-glow', intelPoints[currentCycleIndex].glow);
+            el.classList.remove('cycling');
+        }, 600);
+    }, 8000); // Cycled slightly faster (8 seconds) for better engagement
+}
 
     function startLiveUpdates() {
-        const q = query(collection(db, "MarketReports"), orderBy("timestamp", "desc"), limit(40));
-        onSnapshot(q, (snaps) => {
-            const body = document.getElementById('ledgerBody');
-            const ticker = document.getElementById('liveTicker');
-            const tgl = document.getElementById('chartToggles');
-            
-            if (body) body.innerHTML = ""; 
-            if (ticker) ticker.innerHTML = "";
-            
-            let dataByCommodity = {};
-            let allLabels = new Set();
-            let uniqueItemsInData = new Set(["ALL"]);
-            
-            // 1. Fill the global brain and the local array
-            allReports = snaps.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            let reportArray = allReports;
+    // ✅ Ensure collection name is "MarketData" to match your submission logic
+    const q = query(collection(db, "MarketData"), orderBy("timestamp", "desc"), limit(40));
 
-            // Clear old markers
-            if (typeof activeMarkers !== 'undefined') {
-                for (let id in activeMarkers) if(map) map.removeLayer(activeMarkers[id]);
-                activeMarkers = {};
+    onSnapshot(q, (snaps) => {
+        const body = document.getElementById('ledgerBody');
+        const ticker = document.getElementById('liveTicker');
+        
+        if (body) body.innerHTML = ""; 
+        if (ticker) ticker.innerHTML = "";
+        
+        let dataByCommodity = {};
+        let allLabels = new Set();
+        
+        // 1. Clear old markers safely before redrawing
+        if (typeof activeMarkers !== 'undefined') {
+            for (let id in activeMarkers) {
+                if(map && activeMarkers[id]) map.removeLayer(activeMarkers[id]);
+            }
+            activeMarkers = {};
+        }
+
+        allReports = snaps.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+
+        snaps.forEach((d) => {
+            const r = d.data();
+            
+            // Timestamp handling
+            const dateObj = r.timestamp?.toDate ? r.timestamp.toDate() : new Date();
+            const time = dateObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            
+            const itemName = r.item || r.commodity || "Unknown";
+            const itemPrice = Number(r.price) || 0;
+            const location = r.location || "N/A";
+            
+            // Apply Filters (Stay in the loop but don't render if filtered)
+            if(typeof activeFilters !== 'undefined' && !activeFilters.has("ALL") && !activeFilters.has(itemName)) return;
+
+            const cColor = (typeof getColor === "function") ? getColor(itemName) : "#38bdf8";
+            
+            // Prepare Chart Data
+            if(!dataByCommodity[itemName]) dataByCommodity[itemName] = [];
+            dataByCommodity[itemName].push({x: time, y: itemPrice}); 
+            allLabels.add(time);
+            
+            // 2. Update Ticker
+            if (ticker) {
+                ticker.insertAdjacentHTML('beforeend', `
+                    <span class="ticker-item">${itemName.toUpperCase()}: 
+                        <span style="color:${cColor}">₦${itemPrice.toLocaleString()}</span> 
+                        <span style="font-size:0.6rem; opacity:0.7;"> @ ${location}</span>
+                    </span>`);
+            }
+            
+            // 3. Update Map Markers (Handled with your string GPS logic)
+            let safeCoords = [11.8333, 13.1500]; // Default Damaturu
+            if (r.gps && typeof r.gps === "string" && r.gps.includes(',')) {
+                const parts = r.gps.split(',').map(n => parseFloat(n.trim()));
+                if (!isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] !== 0) {
+                    safeCoords = [parts[0], parts[1]];
+                }
             }
 
-            snaps.forEach((d) => {
-                const r = d.data();
-                if(!r.timestamp || !r.timestamp.toDate) return; // Safety check
-
-                const dateObj = r.timestamp.toDate();
-                const time = dateObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                uniqueItemsInData.add(r.commodity); 
-
-                if(typeof activeFilters !== 'undefined' && !activeFilters.has("ALL") && !activeFilters.has(r.commodity)) return;
-                const cColor = (typeof getColor2 === "function") ? getColor2(r.commodity) : "#38bdf8";
-                
-                if(!dataByCommodity[r.commodity]) dataByCommodity[r.commodity] = [];
-                dataByCommodity[r.commodity].push({x: time, y: r.price}); 
-                allLabels.add(time);
-                
-                if (ticker) {
-                    ticker.insertAdjacentHTML('beforeend', `<span class="ticker-item">${r.commodity.toUpperCase()}: <span style="color:${cColor}">₦${r.price.toLocaleString()}</span> <span style="font-size:0.6rem; opacity:0.7;"> @ ${r.location}</span></span>`);
-                }
-                
-                let safeCoords = [11.8333, 13.1500]; 
-                if (r.gps && typeof r.gps === "string" && r.gps.includes(',')) {
-                    const parts = r.gps.split(',').map(Number);
-                    if (!isNaN(parts[0]) && !isNaN(parts[1])) safeCoords = parts;
-                }
-
-                if(typeof map !== 'undefined' && map) {
-                    activeMarkers[d.id] = L.circleMarker(safeCoords, {
-                        radius: 8,
-                        color: cColor,
-                        fillOpacity: 0.8
-                    })
-                    .addTo(map)
-                    .bindPopup(`
-                        <div class="mp-pop-card">
-                            <div class="mp-pop-title">${r.commodity}</div>
-                            <div class="mp-pop-price">₦${r.price.toLocaleString()}</div>
-                            <div class="mp-pop-loc">📍 ${r.location}</div>
-                            <button class="mp-pop-btn" onclick="openStreetView(${safeCoords[0]}, ${safeCoords[1]})">👁️ View Market</button>
-                        </div>
-                    `);
-                }
-                
-                if (body) {
-                    body.insertAdjacentHTML('beforeend', `<tr><td>${time}</td><td style="color:${cColor}">${r.commodity}</td><td>₦${r.price.toLocaleString()}</td><td><button class="btn-mini" style="background:#ef4444" onclick="deleteReport('${d.id}')">DEL</button></td></tr>`);
-                }
-            });
-
-            if (tgl) {
-                tgl.innerHTML = "";
-                uniqueItemsInData.forEach(u => { 
-                    const chip = document.createElement('div'); 
-                    chip.className = `filter-chip ${(typeof activeFilters !== 'undefined' && activeFilters.has(u)) ? 'active' : ''}`; 
-                    chip.innerText = u; 
-                    chip.onclick = () => setFilter(u); 
-                    tgl.appendChild(chip); 
-                });
+            if(typeof map !== 'undefined' && map && safeCoords[0] !== 0) {
+                activeMarkers[d.id] = L.circleMarker(safeCoords, {
+                    radius: 8, 
+                    fillColor: cColor, 
+                    color: "#fff", 
+                    weight: 2, 
+                    fillOpacity: 0.8
+                })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="color:#020617;">
+                        <b style="color:${cColor}">${itemName}</b><br>
+                        ₦${itemPrice.toLocaleString()}<br>
+                        <small>${location}</small>
+                    </div>`);
             }
-
-            // Chart Updates
-            if (typeof priceChart !== 'undefined' && priceChart) {
-                const sortedLabels = Array.from(allLabels).reverse();
-                priceChart.data.labels = sortedLabels;
-                priceChart.data.datasets = Object.keys(dataByCommodity).map(name => ({ 
-                    label: name, 
-                    data: sortedLabels.map(l => dataByCommodity[name].find(e => e.x === l)?.y || null), 
-                    borderColor: (typeof getColor === "function") ? getColor(name) : "#38bdf8", 
-                    tension: 0.4, 
-                    spanGaps: true 
-                }));
-                priceChart.update();
+            
+            // 4. Update Ledger
+            if (body) {
+                body.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td>${time}</td>
+                        <td style="color:${cColor}; font-weight:bold;">${itemName}</td>
+                        <td>₦${itemPrice.toLocaleString()}</td>
+                        <td style="text-align:right;">
+                            <button class="btn-mini" style="background:#ef4444; border:none; color:white; padding:2px 5px; border-radius:4px; cursor:pointer;" 
+                                onclick="deleteReport('${d.id}')">DEL</button>
+                        </td>
+                    </tr>`);
             }
-
-            if (typeof updateAI === "function") updateAI(reportArray);
-            
-            const sessionEl = document.getElementById('sessionCount');
-            if (sessionEl) sessionEl.innerText = snaps.size;
-            
-            // Only beep if this is NOT the first time the data is loading
-            if (!isInitialLoad && snaps.docChanges().some(change => change.type === "added")) {
-            playBeep(2); // Notification sound for new data
-    }
-            isInitialLoad = false;
         });
-    }
+
+        // 5. Update Chart (Optimized)
+        if (typeof priceChart !== 'undefined' && priceChart) {
+            const sortedLabels = Array.from(allLabels).reverse();
+            priceChart.data.labels = sortedLabels;
+            priceChart.data.datasets = Object.keys(dataByCommodity).map(name => ({ 
+                label: name, 
+                data: sortedLabels.map(l => dataByCommodity[name].find(e => e.x === l)?.y || null), 
+                borderColor: (typeof getColor === "function") ? getColor(name) : "#38bdf8", 
+                backgroundColor: 'transparent',
+                tension: 0.4, 
+                spanGaps: true 
+            }));
+            priceChart.update('none'); // Update without animation for performance
+        }
+
+        if (typeof updateAI === "function") updateAI(allReports);
+        
+        // UI Stat Counter
+        const sessionEl = document.getElementById('sessionCount');
+        if (sessionEl) sessionEl.innerText = snaps.size;
+        
+        // Notification Logic
+        if (!isInitialLoad && snaps.docChanges().some(change => change.type === "added")) {
+            if (typeof playBeep === "function") playBeep(2);
+        }
+        isInitialLoad = false;
+    });
+}
 
     /* 🛠️ NAVIGATION & MENU ENGINE (Updated) */
 /* 🛠️ NAVIGATION & MENU ENGINE */
