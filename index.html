@@ -927,6 +927,29 @@ button {
     opacity: 0.6;
     margin-top: 2px;
 }
+
+.footer-links {
+    display: flex;
+    flex-direction: column; /* Stacks them vertically */
+    align-items: center;    /* Centers them horizontally */
+    gap: 8px;               /* Adds a small space between the two links */
+    margin-top: 10px;
+}
+
+.reg-link {
+    background: none;
+    border: none;
+    color: #3b82f6; /* Or your preferred link color */
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.9rem;
+    padding: 5px;
+}
+
+.reg-link:hover {
+    color: #2563eb;
+}
+
     /* --- END OF CSS --- */
     </style>
 </head>
@@ -948,10 +971,14 @@ button {
             <input type="checkbox" id="rememberMe"> Keep me logged in
         </label>
 
-        <div class="auth-box">
-            <button id="loginBtn" class="btn btn-login" onclick="handleLogin()" style="margin-bottom: 10px;">Login</button>
-            <button class="reg-link" onclick="showRegister()">New User? Register</button>
-        </div>
+      <div class="auth-box">
+    <button id="loginBtn" class="btn btn-login" onclick="handleLogin()" style="margin-bottom: 15px;">Login</button>
+
+    <div class="footer-links">
+        <button class="reg-link" onclick="resetPassword()">Forgot Password?</button>
+        <button class="reg-link" onclick="showRegister()">New User? Register</button>
+    </div>
+</div>
     </div> <div class="auth-card" id="registerCard" style="display: none;">
         <img src="image.png" class="auth-logo" alt="MarketPulse NG">
         <h2 style="font-weight:900; margin-bottom:5px;">New User Registration</h2>
@@ -1157,9 +1184,10 @@ button {
         updateDoc, increment 
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
     import { 
-        getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-        onAuthStateChanged, signOut 
-    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+    onAuthStateChanged, signOut,
+    sendPasswordResetEmail   // ✅ ADDED THIS PATCH FOR PASSWORD RESET 
+} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
     // 2. Configuration
     const firebaseConfig = {
@@ -1625,10 +1653,33 @@ setTimeout(() => {
         btn.innerText = "FAILED";
         btn.style.backgroundColor = "#ef4444";
         setTimeout(() => {
-            btn.innerText = "Log in";
+            btn.innerText = "Login";
             btn.style.backgroundColor = "";
             btn.disabled = false;
         }, 1500);
+    }
+};
+
+    /* 🔑 PASSWORD RESET SYSTEM */
+    window.resetPassword = async function () {
+    const userIn = document.getElementById('userIn').value.trim();
+
+    if (!userIn) {
+        return alert("Enter your Email or Phone Number first.");
+    }
+
+    const finalEmail = userIn.includes('@') 
+        ? userIn 
+        : `${userIn}@marketpulse.node`;
+
+    try {
+        await sendPasswordResetEmail(auth, finalEmail);
+
+        alert("📧 Reset Link Sent! Check your email.");
+
+    } catch (error) {
+        console.error("Reset Error:", error);
+        alert("❌ Reset Failed: " + error.message);
     }
 };
 
@@ -2311,7 +2362,6 @@ window.showLogin = () => {
 
 // Global function mapping for HTML buttons
 window.submitReport = window.submitData; 
-window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
 
 /* 📢 Market Ads Logic */
