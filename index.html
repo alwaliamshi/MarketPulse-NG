@@ -1174,20 +1174,24 @@ button {
 </div>
 
 <script type="module">
-    let allReports = [];
+let allReports = [];
 
-    // 1. Firebase Imports (Standardized to 12.10.0)
+    // 1. Firebase App
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    
+    // 2. Combined Firestore Imports (Everything in one place)
     import { 
         getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
         limit, doc, deleteDoc, getDoc, setDoc, serverTimestamp, 
         updateDoc, increment 
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+    
+    // 3. Auth Imports
     import { 
-    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-    onAuthStateChanged, signOut,
-    sendPasswordResetEmail   // ✅ ADDED THIS PATCH FOR PASSWORD RESET 
-} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+        onAuthStateChanged, signOut,
+        sendPasswordResetEmail 
+    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
     // 2. Configuration
     const firebaseConfig = {
@@ -1762,51 +1766,59 @@ board.appendChild(row);
 
     
     async function handleRegister() {
-        const name = document.getElementById('regName').value.trim();
-        const identifier = document.getElementById('regUser').value.trim();
-        const pass = document.getElementById('regPass').value;
-        const confirm = document.getElementById('regPassConfirm').value;
+    const name = document.getElementById('regName').value.trim();
+    const identifier = document.getElementById('regUser').value.trim();
+    const pass = document.getElementById('regPass').value;
+    const confirm = document.getElementById('regPassConfirm').value;
 
-        if(!name || !identifier || !pass) return alert("Please fill in all fields.");
-        if(pass !== confirm) return alert("Password mismatch detection.");
+    if(!name || !identifier || !pass) return alert("Please fill in all fields.");
+    if(pass !== confirm) return alert("Password mismatch detection.");
 
-        const finalEmail = identifier.includes('@') ? identifier : `${identifier}@marketpulse.node`;
+    const finalEmail = identifier.includes('@') ? identifier : `${identifier}@marketpulse.node`;
 
-        try {
-            // 1. Create the Auth Account
-            const cred = await createUserWithEmailAndPassword(auth, finalEmail, pass);
-            
-            // 2. Create the Database Profile (The "Identity Card")
-            // We use 'await' here to ensure the data is saved before moving on
-            await setDoc(doc(db, "Users", cred.user.uid), { 
-                  name: name, 
-                  email: finalEmail,
-                  role: "User", 
-                  level: 0,
-                  points: 0,
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, finalEmail, pass);
+        
+        await setDoc(doc(db, "Users", cred.user.uid), { 
+            name: name, 
+            email: finalEmail,
 
-                  vouches: [],
-                  vouchCount: 0,
-                  isVerified: false,
+            // 🆕 Identity tracking
+            originalInput: identifier,
+            emailUsed: finalEmail,
+            createdAt: serverTimestamp(),
 
-                  joinedAt: serverTimestamp()
-});
+            role: "User", 
+            level: 0,
+            points: 0,
 
-            alert("Registration Complete! You can now log in.");
-            
-            // 3. Clear fields and go to login
-            document.getElementById('regName').value = "";
-            document.getElementById('regUser').value = "";
-            document.getElementById('regPass').value = "";
-            document.getElementById('regPassConfirm').value = "";
-            
-            if (typeof showLogin === "function") showLogin();
+            vouches: [],
+            vouchCount: 0,
+            isVerified: false,
 
-        } catch (error) { 
-            console.error("Registration Error:", error);
-            alert("Registration Failed: " + error.message); 
-        }
+            joinedAt: serverTimestamp()
+        });
+
+        alert("Registration Complete! You can now log in.");
+        
+        document.getElementById('regName').value = "";
+        document.getElementById('regUser').value = "";
+        document.getElementById('regPass').value = "";
+        document.getElementById('regPassConfirm').value = "";
+        
+        if (typeof showLogin === "function") showLogin();
+
+    } catch (error) { 
+        console.error("Registration Error:", error);
+
+        let msg = "Registration failed";
+        if (error.code === "auth/email-already-in-use") msg = "User already exists";
+        if (error.code === "auth/invalid-email") msg = "Invalid email format";
+        if (error.code === "auth/weak-password") msg = "Password too weak";
+
+        alert(msg);
     }
+}
 
     window.logout = async () => { await signOut(auth); location.reload(); };
 
@@ -1913,7 +1925,7 @@ board.appendChild(row);
         if (name) { await addDoc(collection(db, "Commodities"), { name: name, timestamp: serverTimestamp() }); }
     };
 
-    /* 📡 SUBMIT SYSTEM (Bulletproof Version with Offline Backup) */
+       /* 📡 SUBMIT SYSTEM (Bulletproof Version with Offline Backup) */
 window.submitData = async function () {
     const name = document.getElementById("f_rep_name").value.trim();
     const phone = document.getElementById("f_rep_phone").value.trim();
@@ -1926,18 +1938,16 @@ window.submitData = async function () {
         return showToast("⚠️ Fill all fields", "⚠️");
     }
 
-    // ✅ 2. GPS COORDINATE CAPTURE
-    // If currentCoords is available, we use it. Otherwise, we send "0,0".
     const gpsString = (currentCoords && currentCoords.lat) 
         ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}` 
         : "0, 0";
 
-    // 💾 3. OFFLINE BACKUP (Updated to include GPS)
+    // 💾 3. OFFLINE BACKUP
     try {
         let localData = JSON.parse(localStorage.getItem("offlineData") || "[]");
         localData.push({
             name, phone, item, location, price,
-            gps: gpsString, // 📍 Stored locally for offline map sync
+            gps: gpsString,
             timestamp: new Date().toISOString(),
             status: "pending_sync"
         });
@@ -1954,17 +1964,31 @@ window.submitData = async function () {
             item,
             location,
             price,
-            gps: gpsString, // ✅ This maps the report on your Leaflet map!
+            gps: gpsString,
             userId: auth.currentUser?.uid || "anonymous",
-            // ✅ Using your new helper for clean names
             userName: typeof getUserDisplayName === "function" ? getUserDisplayName() : "Operator",
             timestamp: serverTimestamp()
         });
 
-        showToast("✅ Data & GPS Synced", "📍");
-        
+        // ✅ 🎯 ADD POINTS SYSTEM HERE
+        if (auth.currentUser) {
+            const userRef = doc(db, "Users", auth.currentUser.uid);
+
+            await updateDoc(userRef, {
+                points: increment(10) // change value if needed
+            });
+
+            // Optional animation (only if you already have it)
+            if (typeof showPointPop === "function") {
+                showPointPop(10);
+            }
+        }
+
+        showToast("✅ Data & GPS Synced (+10 pts)", "📍");
+
         // Clear price field for next entry
         document.getElementById("f_price").value = "";
+
     } catch (err) {
         console.error("Firebase Sync Failed:", err);
         showToast("📡 Saved Offline (No Signal)", "💾");
