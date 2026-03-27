@@ -957,6 +957,16 @@ button {
     text-shadow: 0 0 8px rgba(0, 247, 255, 0.7);
 }
 
+@keyframes pulseGlow {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulseGlow 0.5s ease;
+}
+
     /* --- END OF CSS --- */
     </style>
 </head>
@@ -1537,6 +1547,18 @@ function showPointPop(pts) {
     setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
 
+/* 🎯 LOGO PULSE TRIGGER */
+function triggerPulse() {
+    const logo = document.getElementById("appLogo");
+    if (!logo) return;
+
+    // We remove and re-add the class so the animation 
+    // plays again every time points are earned
+    logo.classList.remove("pulse"); 
+    void logo.offsetWidth;          // This line "resets" the element's state
+    logo.classList.add("pulse");    
+}
+
 /* 🚀 THE DOOR OPENER (Now outside the engine so it works) */
     function enterApp() {
     console.log("System: Transitioning to Dashboard...");
@@ -1938,38 +1960,57 @@ function startLeaderboardUpdates() {
         if (name) { await addDoc(collection(db, "Commodities"), { name: name, timestamp: serverTimestamp() }); }
     };
 
-       /* 📡 SUBMIT SYSTEM (Bulletproof Version with Offline Backup) */
+       /* 📡 SUBMIT SYSTEM (Fixed Anti-Spam + Reset + Points Display) */
+let isSubmitting = false; // 🔒 LOCK
+
 window.submitData = async function () {
+
+    if (isSubmitting) return; // 🚫 block spam clicks
+    isSubmitting = true;
+
+    const btn = document.getElementById("submitBtn");
+    if (btn) btn.disabled = true;
+
     const name = document.getElementById("f_rep_name").value.trim();
     const phone = document.getElementById("f_rep_phone").value.trim();
     const item = document.getElementById("f_item").value;
     const location = document.getElementById("f_loc").value;
     const price = parseFloat(document.getElementById("f_price").value);
 
-    // 1. Validation check
+    // ✅ VALIDATION
     if (!name || !phone || !item || !location || !price) {
-        return showToast("⚠️ Fill all fields", "⚠️");
+        showToast("⚠️ Fill all fields", "⚠️");
+        resetSubmitState();
+        return;
+    }
+
+    const now = Date.now();
+    const lastSubmit = localStorage.getItem("lastSubmitTime");
+
+    // ⏱️ COOLDOWN (AFTER SUCCESS ONLY)
+    if (lastSubmit && now - lastSubmit < 30000) {
+        showToast("⏳ Wait 30 seconds", "⛔");
+        resetSubmitState();
+        return;
+    }
+
+    // 🚫 DUPLICATE CHECK
+    const lastEntry = JSON.parse(localStorage.getItem("lastEntry") || "{}");
+
+    if (
+        lastEntry.item === item &&
+        lastEntry.location === location &&
+        lastEntry.price === price
+    ) {
+        showToast("🚫 Duplicate entry", "⚠️");
+        resetSubmitState();
+        return;
     }
 
     const gpsString = (currentCoords && currentCoords.lat) 
         ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}` 
         : "0, 0";
 
-    // 💾 3. OFFLINE BACKUP
-    try {
-        let localData = JSON.parse(localStorage.getItem("offlineData") || "[]");
-        localData.push({
-            name, phone, item, location, price,
-            gps: gpsString,
-            timestamp: new Date().toISOString(),
-            status: "pending_sync"
-        });
-        localStorage.setItem("offlineData", JSON.stringify(localData));
-    } catch (e) {
-        console.error("Local storage error:", e);
-    }
-
-    // ☁️ 4. FIREBASE SUBMISSION
     try {
         await addDoc(collection(db, "MarketData"), {
             name,
@@ -1983,30 +2024,57 @@ window.submitData = async function () {
             timestamp: serverTimestamp()
         });
 
-        // ✅ 🎯 ADD POINTS SYSTEM HERE
+        // 🎯 SMART POINTS
+        let points = 10;
+
+        if (!localStorage.getItem("visited_" + location)) {
+            points += 5;
+            localStorage.setItem("visited_" + location, true);
+        }
+
         if (auth.currentUser) {
             const userRef = doc(db, "Users", auth.currentUser.uid);
 
             await updateDoc(userRef, {
-                points: increment(10) // change value if needed
+                points: increment(points)
             });
-
-            // Optional animation (only if you already have it)
-            if (typeof showPointPop === "function") {
-                showPointPop(10);
-            }
         }
 
-        showToast("✅ Data & GPS Synced (+10 pts)", "📍");
+        // ✅ SAVE ONLY AFTER SUCCESS
+        localStorage.setItem("lastSubmitTime", now);
+        localStorage.setItem("lastEntry", JSON.stringify({ item, location, price }));
 
-        // Clear price field for next entry
+        // 🔔 FIXED TOAST (shows real points)
+        showToast(`✅ Submitted (+${points} pts)`, "📍");
+
+        // ✨ POINT POP
+        if (typeof showPointPop === "function") {
+            showPointPop(points);
+        }
+
+        // 🔄 RESET FORM (FULL RESET)
+        document.getElementById("f_rep_name").value = "";
+        document.getElementById("f_rep_phone").value = "";
+        document.getElementById("f_item").value = "";
+        document.getElementById("f_loc").value = "";
         document.getElementById("f_price").value = "";
 
+        triggerPulse(); // 🔔 trigger logo pulse
+
     } catch (err) {
-        console.error("Firebase Sync Failed:", err);
-        showToast("📡 Saved Offline (No Signal)", "💾");
+        console.error(err);
+        showToast("📡 Saved Offline", "💾");
     }
+
+    resetSubmitState();
 };
+
+// 🔁 RESET BUTTON + LOCK
+function resetSubmitState() {
+    isSubmitting = false;
+    const btn = document.getElementById("submitBtn");
+    if (btn) btn.disabled = false;
+}
 
 window.syncOfflineData = async function () {
     const data = JSON.parse(localStorage.getItem("offlineData") || "[]");
