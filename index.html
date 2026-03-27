@@ -897,8 +897,13 @@ button {
     max-width: 75%;
     padding: 8px 10px;
     border-radius: 12px;
-    background: rgba(255,255,255,0.08);
-    align-self: flex-start;
+    background: rgba(0,0,0,0.15); /* 🔥 better contrast */
+    color: var(--white);
+}
+
+body.light-mode .msg {
+    background: rgba(0,0,0,0.05);
+    color: #111;
 }
 
 /* My messages (right side) */
@@ -965,6 +970,12 @@ button {
 
 .pulse {
     animation: pulseGlow 0.5s ease;
+}
+
+#topContributorsContainer {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
 }
 
     /* --- END OF CSS --- */
@@ -1146,14 +1157,16 @@ button {
         
         <aside class="ui-panel">
              <h3 style="color:var(--gold); font-size:14px; margin-bottom:15px; text-transform: uppercase;">🏆 Top Contributors</h3>
-             <table class="leaderboard-table" style="width:100%;">
-                 <tbody id="leaderboardBody"></tbody>
-             </table>
+             <div id="topContributorsContainer">
+                <table class="leaderboard-table" style="width:100%;">
+        <tbody id="leaderboardBody"></tbody>
+    </table>
+</div>
         </aside>
 
         <aside class="ui-panel social-panel">
 
-    <h3 class="social-title">🌐 Intelligence Feed</h3>
+    <h3 class="social-title">💬 Social Feed</h3>
 
     <!-- CHAT AREA -->
     <div id="socialFeed" class="social-feed"></div>
@@ -1174,7 +1187,7 @@ button {
     <button class="btn-mini ad-btn" onclick="postAd()">Add</button>
 </div>
 
-    <div id="adsFeed" style="font-size:0.8rem; color:var(--dim); max-height:200px; overflow-y:auto;">
+    <div id="adsFeed" style="font-size:0.8rem; color:var(--dim); max-height:350px; overflow-y:auto;">
         No ads yet...
     </div>
 </aside>
@@ -2012,17 +2025,22 @@ window.submitData = async function () {
         : "0, 0";
 
     try {
-        await addDoc(collection(db, "MarketData"), {
-            name,
-            phone,
-            item,
-            location,
-            price,
-            gps: gpsString,
-            userId: auth.currentUser?.uid || "anonymous",
-            userName: typeof getUserDisplayName === "function" ? getUserDisplayName() : "Operator",
-            timestamp: serverTimestamp()
-        });
+        const docRef = await addDoc(collection(db, "MarketData"), {
+    name,
+    phone,
+    item,
+    location,
+    price,
+    gps: gpsString,
+    userId: auth.currentUser?.uid || "anonymous",
+    userName: typeof getUserDisplayName === "function" ? getUserDisplayName() : "Operator",
+    timestamp: serverTimestamp()
+});
+
+// 🔥 ADD THIS (VERY IMPORTANT)
+    await updateDoc(docRef, {
+    id: docRef.id
+});
 
         // 🎯 SMART POINTS
         let points = 10;
@@ -2286,17 +2304,21 @@ window.cycleRole = async (uid, currentRole) => {
             
             // 4. Update Ledger
             if (body) {
-                body.insertAdjacentHTML('beforeend', `
-                    <tr>
-                        <td>${time}</td>
-                        <td style="color:${cColor}; font-weight:bold;">${itemName}</td>
-                        <td>₦${itemPrice.toLocaleString()}</td>
-                        <td style="text-align:right;">
-                            <button class="btn-mini" style="background:#ef4444; border:none; color:white; padding:2px 5px; border-radius:4px; cursor:pointer;" 
-                                onclick="deleteReport('${d.id}')">DEL</button>
-                        </td>
-                    </tr>`);
-            }
+    body.insertAdjacentHTML('beforeend', `
+            <tr>
+                <td>${time}</td>
+                <td style="color:${cColor}; font-weight:bold;">${itemName}</td>
+                <td>₦${itemPrice.toLocaleString()}</td>
+                <td style="text-align:right;">
+                    <button type="button" 
+                        class="btn-mini" 
+                        style="background:#ef4444; border:none; color:white; padding:2px 5px; border-radius:4px; cursor:pointer;" 
+                        onclick="deleteEntry('${d.id}')">
+                        DEL
+                    </button>
+                </td>
+            </tr>`);
+}
         });
 
         // 5. Update Chart (Optimized)
@@ -2347,7 +2369,40 @@ window.cycleRole = async (uid, currentRole) => {
         }
     });
 
-    window.deleteReport = async (id) => { if(confirm("Confirm deletion?")) await deleteDoc(doc(db, "MarketReports", id)); };
+    window.deleteReport = async function(id) {
+    if (!id) return alert("Invalid ID");
+
+    const confirmDelete = confirm("Delete this record?");
+    if (!confirmDelete) return;
+
+    try {
+        // 🔥 FIRESTORE DELETE
+        if (window.db) {
+            await deleteDoc(doc(db, "MarketReports", id));
+        }
+
+        // 🔥 LOCAL STORAGE FALLBACK
+        let data = JSON.parse(localStorage.getItem("marketData") || "[]");
+        data = data.filter(item => item.id !== id);
+        localStorage.setItem("marketData", JSON.stringify(data));
+
+        alert("Deleted successfully");
+
+       // 🔁 Update the UI without refreshing the whole page
+        // We use window.submitData's success logic style to stay on the page
+        if (window.loadMarketData) {
+            window.loadMarketData(); 
+        } else if (typeof loadMarketData === "function") {
+            loadMarketData();
+        } else {
+            console.log("Delete successful; manual refresh required to see changes.");
+        }
+
+    } catch (err) {
+        console.error("DELETE ERROR:", err);
+        alert("Delete failed: " + err.message);
+    }
+};
     window.toggleTheme = () => document.body.classList.toggle('light-mode');
     window.triggerUpdate = () => { location.reload(); };
     /* 🔄 AUTH VIEW SWITCHER */
@@ -2494,6 +2549,42 @@ function postAd() {
 
     localStorage.setItem("adsFeed", feed.innerHTML);
 }
+
+window.deleteEntry = function(id) {
+    if (!id) return alert("Invalid entry ID");
+
+    const confirmDelete = confirm("Delete this record?");
+    if (!confirmDelete) return;
+
+    console.log("Attempting to delete ID:", id);
+
+    // 1. Delete from Firestore Database
+    deleteDoc(doc(db, "MarketData", id))
+        .then(() => {
+            // 2. Update Local Storage Backup
+            let data = JSON.parse(localStorage.getItem("marketData") || "[]");
+            data = data.filter(item => item.id !== id);
+            localStorage.setItem("marketData", JSON.stringify(data));
+
+            // This uses your built-in notification system instead of a popup
+            if (typeof showToast === "function") {
+                 showToast("✅ Record deleted successfully", "🗑️");
+                }
+
+            // 3. 🔄 REFRESH TABLE ONLY (Prevents Logout)
+            // This calls your existing function to redraw the table
+            if (typeof loadMarketData === "function") {
+                loadMarketData(); 
+            } else {
+                console.warn("UI refresh function not found. Manual refresh may be needed.");
+            }
+        })
+        .catch((err) => {
+            console.error("DELETE ERROR:", err);
+            alert("Delete failed: " + err.message);
+        });
+};
+
 // Make postAd accessible to the button
 window.postAd = postAd;
 
