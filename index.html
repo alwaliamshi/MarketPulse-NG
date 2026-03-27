@@ -950,6 +950,13 @@ button {
     color: #2563eb;
 }
 
+.points-cell {
+    text-align: right;
+    font-weight: bold;
+    color: #00f7ff; /* match your TOP CONTRIBUTORS color */
+    text-shadow: 0 0 8px rgba(0, 247, 255, 0.7);
+}
+
     /* --- END OF CSS --- */
     </style>
 </head>
@@ -1360,7 +1367,9 @@ function startSocialFeed() {
 
         feed.innerHTML = "";
 
-        snapshot.forEach(doc => {
+            let rank = 1;
+
+            snapshot.forEach(doc => {
             const data = doc.data();
 
             const time = data.timestamp?.toDate
@@ -1739,29 +1748,33 @@ function startLeaderboardUpdates() {
     );
 
     onSnapshot(q, (snapshot) => {
-        const board = document.getElementById("leaderboardBody");
-        if (!board) return;
+    const leaderboard = document.getElementById("leaderboardBody"); // ✅ FIXED TARGET
+    if (!leaderboard) return;
 
-        board.innerHTML = "";
+    leaderboard.innerHTML = "";
 
-        snapshot.forEach(doc => {
-            const user = doc.data();
+    let rank = 1; // ✅ start ranking
 
-            const row = document.createElement("tr");
+    snapshot.forEach(docSnap => {
+        const user = docSnap.data();
 
-row.innerHTML = `
-    <td>
-        <span class="rank-badge">🏅</span>
-        <strong>${user.name || "User"}</strong>
-    </td>
-    <td style="text-align:right;">
-        ${user.points || 0} pts
-    </td>
-`;
+        const row = document.createElement("tr");
 
-board.appendChild(row);
-        });
+            row.innerHTML = `
+            <td>
+                <span class="rank-badge">#${rank}</span>
+                <strong>${user.name || "User"}</strong>
+            </td>
+            <td class="points-cell">
+                ${user.points || 0} pts
+            </td>
+                `;
+
+        leaderboard.appendChild(row);
+
+        rank++; // ✅ THIS is where it goes
     });
+});
 }
 
     
