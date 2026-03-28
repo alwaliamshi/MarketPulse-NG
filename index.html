@@ -1211,11 +1211,10 @@ let allReports = [];
     
     // 2. Combined Firestore Imports (Everything in one place)
     import { 
-        getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
-        limit, doc, deleteDoc, getDoc, setDoc, serverTimestamp, 
-        updateDoc, increment 
+    getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
+    limit, doc, deleteDoc, getDoc, getDocs, setDoc, serverTimestamp, 
+    updateDoc, increment 
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-    
     // 3. Auth Imports
     import { 
         getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
@@ -1434,7 +1433,6 @@ window.postAd = function() {
     feed.prepend(ad);
     input.value = "";
 
-    localStorage.setItem("adsFeed", feed.innerHTML);
 };
 
 // ✅ INIT
@@ -1733,7 +1731,7 @@ setTimeout(() => {
 
 /* 👤 USER INTERFACE & ROLE ENGINE (Cleaned & Locked) */
     /* 🆔 USER IDENTITY HELPER */
-function getUserDisplayName() {
+    function getUserDisplayName() {
     if (window.currentUserData?.name) return window.currentUserData.name;
 
     if (auth.currentUser?.email) {
@@ -1922,34 +1920,55 @@ function startLeaderboardUpdates() {
     };
 
     function loadHubs() {
-        onSnapshot(collection(db, "MarketHubs"), (snap) => {
-            const sel = document.getElementById('f_loc');
-            sel.innerHTML = '<option value="" disabled selected>Select Hub...</option>';
-            dynamicHubs = { ...preInstalledHubs }; hubDocMapping = {};
-            Object.keys(preInstalledHubs).sort().forEach(name => {
-                const opt = document.createElement('option'); opt.text = name; opt.value = name; sel.add(opt);
-            });
-            snap.forEach(d => {
-                const data = d.data();
-                if (!dynamicHubs[data.name]) {
-                    dynamicHubs[data.name] = [data.lat, data.lng];
-                    const opt = document.createElement('option'); opt.text = data.name; opt.value = data.name; sel.add(opt);
-                }
-                hubDocMapping[data.name] = d.id;
-            });
+    onSnapshot(collection(db, "MarketHubs"), (snap) => {
+        const sel = document.getElementById('f_loc');
+        sel.innerHTML = '<option value="" disabled selected>Select Hub...</option>';
+
+        let hubs = { ...preInstalledHubs };
+
+        snap.forEach(d => {
+            const data = d.data();
+            hubs[data.name] = [data.lat, data.lng];
+            hubDocMapping[data.name] = d.id;
         });
-    }
+
+        // ✅ SORT EVERYTHING
+        Object.keys(hubs)
+            .sort((a, b) => a.localeCompare(b))
+            .forEach(name => {
+                const opt = document.createElement('option');
+                opt.text = name;
+                opt.value = name;
+                sel.add(opt);
+            });
+
+        dynamicHubs = hubs;
+    });
+}
 
     function loadCommodities() {
-        onSnapshot(collection(db, "Commodities"), (snap) => {
-            const sel = document.getElementById('f_item');
-            sel.innerHTML = '<option value="" disabled selected>Select Commodity...</option>';
-            ["Rice (Local)", "Beans (Brown)", "Maize", "Sorghum", "Wheat"].forEach(c => {
-                 const opt = document.createElement('option'); opt.text = c; opt.value = c; sel.add(opt);
-            });
-            snap.forEach(doc => { const opt = document.createElement('option'); opt.text = doc.data().name; opt.value = doc.data().name; sel.add(opt); });
+    onSnapshot(collection(db, "Commodities"), (snap) => {
+        const sel = document.getElementById('f_item');
+        sel.innerHTML = '<option value="" disabled selected>Select Commodity...</option>';
+
+        let commodities = [];
+
+        snap.forEach(doc => {
+            commodities.push(doc.data().name);
         });
-    }
+
+        // ✅ REMOVE DUPLICATES + SORT
+        commodities = [...new Set(commodities)]
+            .sort((a, b) => a.localeCompare(b));
+
+        commodities.forEach(c => {
+            const opt = document.createElement('option');
+            opt.text = c;
+            opt.value = c;
+            sel.add(opt);
+        });
+    });
+}
 
     window.addHub = async () => {
         const name = prompt("Enter Market Hub Name:");
@@ -1968,23 +1987,63 @@ function startLeaderboardUpdates() {
         try { await updateDoc(doc(db, "MarketHubs", hubDocMapping[currentHub]), { name: newName }); } catch (e) { alert("Error renaming hub."); }
     };
 
-    window.addCommodity = async () => {
-        const name = prompt("Enter commodity name:");
-        if (name) { await addDoc(collection(db, "Commodities"), { name: name, timestamp: serverTimestamp() }); }
-    };
+        const bannedItems = [
+    "cocaine","heroin","weed","marijuana","cannabis",
+    "tramadol","codeine","meth","crack",
+    "gun","rifle","pistol","ak47","weapon",
+    "bomb","explosive",
+    "fake currency","counterfeit",
+    "human organ","kidney"
+];
+
+window.addCommodity = async () => {
+    const name = prompt("Enter commodity name:");
+    if (!name) return;
+
+    const cleanName = name.trim().toLowerCase();
+
+    // 🚫 BLOCK ILLEGAL ITEMS
+    if (bannedItems.some(b => cleanName.includes(b))) {
+        alert("🚫 Illegal item not allowed");
+        return;
+    }
+
+    const snap = await getDocs(collection(db, "Commodities"));
+
+    let exists = false;
+
+    snap.forEach(doc => {
+        if (doc.data().name.toLowerCase() === cleanName) {
+            exists = true;
+        }
+    });
+
+    // 🚫 BLOCK DUPLICATES
+    if (exists) {
+        alert("🚫 Commodity already exists");
+        return;
+    }
+
+    await addDoc(collection(db, "Commodities"), {
+        name: name.trim(),
+        timestamp: serverTimestamp()
+    });
+
+    showToast("✅ Commodity added", "📦");
+};
 
        /* 📡 SUBMIT SYSTEM (Fixed Anti-Spam + Reset + Points Display) */
-let isSubmitting = false; // 🔒 LOCK
+        let isSubmitting = false; // 🔒 LOCK
 
-window.submitData = async function () {
+        window.submitData = async function () {
 
-    if (isSubmitting) return; // 🚫 block spam clicks
-    isSubmitting = true;
+        if (isSubmitting) return; // 🚫 block spam clicks
+        isSubmitting = true;
 
-    const btn = document.getElementById("submitBtn");
-    if (btn) btn.disabled = true;
+        const btn = document.getElementById("submitBtn");
+        if (btn) btn.disabled = true;
 
-    const name = document.getElementById("f_rep_name").value.trim();
+     const name = document.getElementById("f_rep_name").value.trim();
     const phone = document.getElementById("f_rep_phone").value.trim();
     const item = document.getElementById("f_item").value;
     const location = document.getElementById("f_loc").value;
@@ -2222,6 +2281,38 @@ window.cycleRole = async (uid, currentRole) => {
     }, 8000); // Cycled slightly faster (8 seconds) for better engagement
 }
 
+function startAdsFeed() {
+    const q = query(
+        collection(db, "MarketAds"),
+        orderBy("timestamp", "desc")
+    );
+
+    onSnapshot(q, (snapshot) => {
+        const feed = document.getElementById("adsFeed");
+        if (!feed) return;
+
+        feed.innerHTML = ""; // clear old
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+
+            const ad = document.createElement("div");
+            ad.style.padding = "8px";
+            ad.style.border = "1px dashed var(--dim)";
+            ad.style.borderRadius = "8px";
+            ad.style.marginBottom = "8px";
+            ad.style.fontSize = "0.75rem";
+
+            ad.innerHTML = `
+                <strong>${data.user}</strong><br>
+                ${data.message}
+            `;
+
+            feed.appendChild(ad);
+        });
+    });
+}
+
     function startLiveUpdates() {
     // ✅ Ensure collection name is "MarketData" to match your submission logic
     const q = query(collection(db, "MarketData"), orderBy("timestamp", "desc"), limit(40));
@@ -2388,12 +2479,13 @@ window.cycleRole = async (uid, currentRole) => {
 
         alert("Deleted successfully");
 
-       // 🔁 Update the UI without refreshing the whole page
-        // We use window.submitData's success logic style to stay on the page
+        // 🔁 Update the UI without refreshing the whole page
         if (window.loadMarketData) {
             window.loadMarketData(); 
+            startAdsFeed(); // <--- Added directly under loadMarketData
         } else if (typeof loadMarketData === "function") {
             loadMarketData();
+            startAdsFeed(); // <--- Added directly under loadMarketData
         } else {
             console.log("Delete successful; manual refresh required to see changes.");
         }
@@ -2525,7 +2617,7 @@ window.submitReport = window.submitData;
 window.handleRegister = handleRegister;
 
 /* 📢 Market Ads Logic */
-function postAd() {
+async function postAd() {
     const input = document.getElementById("adInput");
     const feed = document.getElementById("adsFeed");
 
@@ -2536,18 +2628,39 @@ function postAd() {
 
     if (!input.value.trim()) return;
 
+    const message = input.value.trim();
+
+    // ✅ SHOW INSTANTLY (your existing UI behavior)
     const ad = document.createElement("div");
     ad.style.padding = "8px";
     ad.style.border = "1px dashed var(--dim)";
     ad.style.borderRadius = "8px";
     ad.style.marginBottom = "8px";
     ad.style.fontSize = "0.75rem";
-    ad.innerHTML = input.value;
+    ad.innerHTML = message;
 
     feed.prepend(ad);
     input.value = "";
 
-    localStorage.setItem("adsFeed", feed.innerHTML);
+    // ✅ SAVE TO FIRESTORE (NEW)
+    try {
+        await addDoc(collection(db, "MarketAds"), {
+            message: message,
+            user: getUserDisplayName ? getUserDisplayName() : "Anonymous",
+            timestamp: serverTimestamp()
+        });
+
+        if (typeof showToast === "function") {
+            showToast("📢 Ad posted", "🚀");
+        }
+
+    } catch (error) {
+        console.error("Ad save failed:", error);
+
+        if (typeof showToast === "function") {
+            showToast("❌ Failed to save ad", "⚠️");
+        }
+    }
 }
 
 window.deleteEntry = function(id) {
@@ -2602,7 +2715,9 @@ window.onload = () => {
         document.getElementById("adsFeed").innerHTML = savedAds;
     }
 
-    // Reset Viewport
+    // ✅ ADD THIS
+    startAdsFeed();
+
     window.scrollTo(0, 0);
 };
 
