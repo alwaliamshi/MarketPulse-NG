@@ -12,7 +12,11 @@
     <title>MarketPulse NG | Intelligence Portal</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <style>
         :root {
             --bg-deep: #020617;
@@ -29,7 +33,18 @@
             --pulse-speed: 2s;
             --ai-glow: rgba(168, 85, 247, 0.4);
             --dark-green: #15803d; 
-            --dark-text: #334155;  
+            --dark-text: #334155;
+            /* 🎯 OPTIMIZATION: Consolidated spacing & styling variables */
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.5);
+            --padding-sm: 10px;
+            --padding-md: 15px;
+            --padding-lg: 25px;
         }
 
         body.light-mode {
@@ -45,7 +60,8 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; transition: background 0.3s; }
-        body { background: var(--bg-deep); color: var(--white); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        
 
         .market-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -53,6 +69,37 @@
             background-size: cover; background-position: center; z-index: -1;
             filter: saturate(1.15) brightness(0.9);
         }
+
+        /* 🌫️ Depth overlay layer */
+            body.login-mode .market-bg::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                
+                background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.05), transparent 60%);
+                
+                animation: lightDrift 18s ease-in-out infinite alternate;
+                pointer-events: none;
+            }
+
+                        /* 🔥 LIVE ANIMATED MARKET BACKGROUND */
+          body.login-mode .market-bg {
+                background: 
+                    linear-gradient(rgba(2, 6, 23, 0.65), rgba(2, 6, 23, 0.85)),
+                    url('landing_bg.jpeg');
+                background-size: cover;
+                background-position: center;
+                
+                animation: marketFloat 25s ease-in-out infinite alternate;
+                transform: scale(1.1);
+                
+                filter: brightness(0.85) saturate(1.1);
+            }
+
+            body.login-active .market-bg {
+                display: none;
+            }
+
         body.light-mode .market-bg { display: none; }
 
         #marketPopup {
@@ -63,21 +110,24 @@
         }
         #marketPopup.show { display: block; transform: translateX(0); }
 
+
+
         #welcomeView { height: 100vh; display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .auth-card {
-            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(18px);
             padding: 45px; border-radius: 35px; width: 90%; max-width: 440px;
             text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3); color: #1e293b;
         }
 
         .auth-logo { width: 100%; max-width: 320px; display: block; margin: 0 auto 20px; }
-        #mainApp { display: none; height: 100vh; flex-direction: column; }
         
-        .top-nav {
-            height: 100px; background: var(--panel); backdrop-filter: blur(15px);
-            display: flex; justify-content: space-between; align-items: center; padding: 0 40px;
-            border-bottom: var(--border); position: relative; z-index: 3000;
-        }
+        #mainApp {
+                    display: none;
+                    min-height: 100vh;
+                    padding-top: 115px;
+                }
+                        
 
         .news-ticker-bar {
             background: var(--ticker-bg); height: 35px; display: flex; align-items: center;
@@ -96,6 +146,27 @@
         }
 
         @keyframes tickerScroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+        /* 🎥 Subtle camera motion */
+        @keyframes marketFloat {
+            0% {
+                transform: scale(1.1) translateY(0px) translateX(0px);
+            }
+            50% {
+                transform: scale(1.15) translateY(-10px) translateX(5px);
+            }
+            100% {
+                transform: scale(1.1) translateY(5px) translateX(-5px);
+            }
+        }
+
+        @keyframes lightDrift {
+                0% {
+                    background-position: 30% 30%;
+                }
+                100% {
+                    background-position: 70% 70%;
+                }
+            }
 
         .ticker-item { display: inline-block; margin-right: 50px; color: var(--white); }
         .ticker-price { font-weight: 900; margin-left: 5px; }
@@ -126,7 +197,10 @@
             display: none; flex-direction: column; padding: 10px;
             box-shadow: 0 15px 45px rgba(0,0,0,0.5); z-index: 4000;
         }
-        .options-menu.active { display: flex; }
+        .options-menu.show {
+            display: flex;
+        }
+
         .menu-item {
             padding: 12px 15px; border-radius: 10px; cursor: pointer;
             font-size: 0.85rem; font-weight: 600; color: var(--white);
@@ -217,53 +291,17 @@
         /* --- START OF HEADER & SCROLL PATCH --- */
 
 
-body {
-    overflow-y: auto !important; /* Allows the whole page to scroll */
-    height: auto !important;
-}
 
 .dashboard-container {
-    display: block !important; /* Forces the Social Hub row to go BELOW the top row */
-    height: auto !important;
-    padding: 20px;
-}
-
-.grid-frame {
-    display: grid !important;
-    height: auto !important;
-    margin-bottom: 40px; /* Space between the two rows */
-}
-/* --- NAVIGATION & LAYOUT FIX --- */
-
-
-body {
-    overflow-y: auto !important;
-    height: auto !important;
-    padding-top: 70px; /* 🚨 IMPORTANT: Prevents the header from covering your Submit form */
-}
-
-.dashboard-container {
-    display: block !important;
-    height: auto !important;
-    padding: 20px;
-    margin: 0 auto;
-    max-width: 1600px;
-}
-
-.grid-frame {
-    display: grid !important;
-    height: auto !important;
-    margin-bottom: 40px;
+    display: grid;
+    grid-template-columns: 250px 1fr 320px;
+    gap: 10px;
+    padding: 10px;
+    height: calc(100vh - 120px);
 }
 
 /* --- NAVIGATION & LAYOUT FIX --- */
 
-
-body {
-    overflow-y: auto;
-    height: 100vh;
-    margin: 0;
-}
 
 /* This targets your dashboard ID specifically */
 #mainDashboard {
@@ -274,10 +312,6 @@ body {
     padding-bottom: 50px;
 }
 
-.grid-frame {
-    display: grid !important;
-    height: auto !important;
-}
 
 .op-header { display: flex; justify-content: space-between; align-items: center; }
 /* --- END OF PATCH --- */
@@ -311,6 +345,19 @@ body {
         .mp-pop-loc { font-size: 0.75rem; color: var(--dim); }
         .mp-pop-btn { background: var(--blue); color: #020617; border: none; padding: 8px; border-radius: 6px; font-weight: 900; font-size: 0.7rem; cursor: pointer; text-align: center; margin-top: 5px; transition: 0.2s; }
         .mp-pop-btn:hover { background: #7dd3fc; }
+
+        .login-bg {
+            position: fixed;
+            inset: 0;
+            background: 
+                linear-gradient(rgba(2, 6, 23, 0.75), rgba(2, 6, 23, 0.85)),
+                url('landing_bg.jpeg');
+            background-size: cover;
+            background-position: center;
+            filter: blur(2px) saturate(1.1);
+            z-index: -1;
+        }
+
         /* --- INJECT NEW STYLES HERE --- */
         .bottom-scroll-section {
     width: 100%;
@@ -354,16 +401,6 @@ body {
             opacity: 0.7;
 }
 
-        /* 1. THE AUTOFILL FIX: Forces browser-saved info to stay dark/transparent */
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-            -webkit-box-shadow: 0 0 0 40px rgba(30, 41, 59, 1) inset !important;
-            -webkit-text-fill-color: var(--white) !important;
-            transition: background-color 5000s ease-in-out 0s;
-            border-radius: 14px;
-        }
 
         /* 2. THE PRICE INPUT SYNC: Matches the styling for the number field */
         #f_price.field {
@@ -377,10 +414,6 @@ body {
             margin: 0;
         }
 
-        /* 3. THE MENU VISIBILITY: Fixes the toggle behavior */
-        .options-menu.show { 
-            display: flex !important; 
-        }
 
         .new-feature-card {
             background: var(--panel);
@@ -404,21 +437,7 @@ body {
      border-radius: 14px;
 }
 
-    /* 2. THE MENU FIX: Ensures the Javascript 'show' class works */
-    #optionsMenu.show { 
-    display: flex !important; 
-}
-
-    .new-feature-card {
-    background: var(--panel);
-    border: 1px solid var(--blue);
-    padding: 10px;
-}
-
-    .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .leaderboard-table td { padding: 8px; font-size: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .rank-badge { font-weight: 900; margin-right: 5px; }
-    /* 🏆 NEW SCROLLABLE LEADERBOARD SECTION */
+        /* 🏆 NEW SCROLLABLE LEADERBOARD SECTION */
     .bottom-scroll-section {
     width: 100%;
     margin-top: 50px;
@@ -453,9 +472,6 @@ body {
 
     /* Custom Mini-Scrollbar */
     .table-wrapper::-webkit-scrollbar { width: 4px; }
-    .table-wrapper::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 10px; }
-
-    /* Modern Toast Notification System */
 .toast-container {
     position: fixed;
     top: 20px;
@@ -538,31 +554,17 @@ body {
     font-size: 0.7rem !important;
 }
 
-/* 🌍 Global Scroll Fix */
-body {
-    overflow-y: auto !important;
-    height: auto !important;
-}
 
-.dashboard-container {
-    display: block !important; /* Forces the second row to move BELOW the first */
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px;
-}
 
 /* Ensure the grid frames don't fight for space */
 .grid-frame {
-    display: grid !important;
-    width: 100% !important;
-    height: auto !important;
-    margin-bottom: 30px; /* Space between the top and bottom rows */
+    display: grid;
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    margin-bottom: 30px;
 }
 
-.grid-frame {
-    height: auto !important; /* Removes the "trapped" height */
-}
 
 header.top-nav {
     position: fixed;
@@ -570,7 +572,6 @@ header.top-nav {
     left: 0;
     right: 0;
     height: 80px;
-    z-index: 9999;
 
     display: flex;
     justify-content: space-between;
@@ -580,11 +581,9 @@ header.top-nav {
     backdrop-filter: blur(12px);
     border-bottom: var(--border);
     padding: 0 30px;
+    z-index: 9999;
 }
 
-#mainApp {
-    padding-top: 115px;
-}
 
 .news-ticker-bar {
     position: fixed;
@@ -592,11 +591,7 @@ header.top-nav {
     left: 0;
     right: 0;
     z-index: 9000;
-}
-
-.grid-frame {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 .ui-panel {
@@ -607,13 +602,6 @@ h3 {
     margin-top: 0 !important;
 }
 
-.news-ticker-bar {
-    margin-bottom: 0 !important;
-}
-
-.grid-frame {
-    gap: 10px; /* controls spacing between columns */
-}
 
 /* 📱 MOBILE RESPONSIVENESS */
 @media (max-width: 768px) {
@@ -650,6 +638,10 @@ h3 {
 /* Buttons behave normally unless explicitly styled */
 button {
     width: auto;
+}
+
+.btn {
+    width: 100%;
 }
 
     /* Chart & map scaling */
@@ -722,10 +714,10 @@ button {
 }
 
 /* Right panel structure */
+.panel,
+.main-content,
 .right-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    overflow-y: auto;
 }
 
 /* Section spacing */
@@ -978,6 +970,62 @@ body.light-mode .msg {
     padding-right: 5px;
 }
 
+#operatorModal {
+    z-index: 9999;
+}
+
+#operatorModal .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    z-index: 10000;
+}
+
+            body {
+                background: var(--bg-deep);
+                color: var(--white);
+                min-height: 100vh;
+                overflow-x: hidden;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* ✨ Welcome text entrance animation */
+            #welcomeView h1 {
+                    animation: fadeSlideUp 1.2s ease forwards;
+                }
+
+            #welcomeView p {
+                opacity: 0;
+                animation: fadeSlideUp 1.2s ease forwards;
+                animation-delay: 1.8s;
+            }    
+
+            /* 🎬 Keyframes */
+            @keyframes fadeSlideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ⌨️ Typing cursor */
+                    .typing-cursor::after {
+                        content: "|";
+                        animation: blink 1s infinite;
+                        margin-left: 5px;
+                    }
+
+                    @keyframes blink {
+                        0%, 50%, 100% { opacity: 1; }
+                        25%, 75% { opacity: 0; }
+                    }
+
     /* --- END OF CSS --- */
     </style>
 </head>
@@ -986,49 +1034,50 @@ body.light-mode .msg {
 <div id="marketPopup">🔔 NEW DATA SYNCED</div>
 <div class="market-bg"></div>
 
-<div id="welcomeView">
-    <div class="auth-card" id="loginCard">
-        <img src="image.png" class="auth-logo" alt="MarketPulse NG">
-        <h2 style="font-weight:900; margin-bottom:5px;">Intelligence Portal</h2>
-        <p style="color:#64748b; font-size:0.95rem; margin-bottom:30px;">Northeast Trade & Price Monitoring</p>
-        
-        <input type="text" id="userIn" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Email or Phone Number">
-        <input type="password" id="passIn" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="••••••••">
-        
-        <label class="remember-wrap">
-            <input type="checkbox" id="rememberMe"> Keep me logged in
-        </label>
+<div id="welcomeView" style="display:flex; width:100%; height:100vh;">
 
-      <div class="auth-box">
-    <button id="loginBtn" class="btn btn-login" onclick="handleLogin()" style="margin-bottom: 15px;">Login</button>
-
-    <div class="footer-links">
-        <button class="reg-link" onclick="resetPassword()">Forgot Password?</button>
-        <button class="reg-link" onclick="showRegister()">New User? Register</button>
-    </div>
-</div>
-    </div> <div class="auth-card" id="registerCard" style="display: none;">
-        <img src="image.png" class="auth-logo" alt="MarketPulse NG">
-        <h2 style="font-weight:900; margin-bottom:5px;">New User Registration</h2>
-        <p style="color:#64748b; font-size:0.95rem; margin-bottom:30px;">Create your operator credentials</p>
-        
-        <input type="text" id="regName" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Full Name">
-        <input type="text" id="regUser" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Email or Phone Number">
-        <input type="password" id="regPass" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Create Password">
-        <input type="password" id="regPassConfirm" class="field" style="background:#f1f5f9; color:#1e293b;" placeholder="Confirm Password">
-
-        <div class="auth-box">
-            <button class="btn btn-login" onclick="handleRegister()" style="margin-bottom: 10px;">Register Account</button>
-            <button class="reg-link" onclick="showLogin()">Back to Login</button>
+    <!-- LEFT SIDE -->
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px; color:white;">
+        <div style="max-width:500px;">
+            
+            <h1 id="typingText" style="font-size:2rem; line-height:1.4;"></h1>
+                 <p style="margin-top:15px; color:#94a3b8;">
+                Real-time market prices.<br>
+                AI-powered insights across the nation’s commercial hubs.
+            </p>
         </div>
     </div>
+
+    <!-- RIGHT SIDE -->
+    <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+        <div class="auth-card" id="loginCard">
+
+            <img src="image.png" class="auth-logo">
+
+            <input type="text" id="userIn" class="field" placeholder="Email or Phone Number">
+            <input type="password" id="passIn" class="field" placeholder="••••••••">
+
+            <label class="remember-wrap">
+                <input type="checkbox" id="rememberMe"> Keep me logged in
+            </label>
+
+            <button id="loginBtn" class="btn btn-login" onclick="handleLogin()">Login</button>
+
+            <div class="footer-links">
+                <button class="reg-link" onclick="resetPassword()">Forgot Password?</button>
+                <button class="reg-link" onclick="showRegister()">New User? Register</button>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 
 <div id="mainApp" style="display:none;">
         <header class="top-nav">
         <div class="branding-core">
             <div id="logoContainer" class="custom-logo-container">
-                <img src="image.png" class="custom-logo-img" alt="MarketPulseNG Logo">
+                <img id="logo" src="image.png" class="custom-logo-img" alt="MarketPulseNG Logo">
             </div>
         </div>
 
@@ -1091,22 +1140,34 @@ body.light-mode .msg {
             
             <button class="btn" onclick="submitData()">Submit Report</button>
             <p id="gpsStatus" style="font-size:0.7rem; color:var(--gold); text-align:center; margin-top:10px;">Tracking: Passive Mode</p>
-            
-            
+
         </aside>
 
         <main class="ui-panel">
             <div class="chart-controls" id="chartToggles"></div>
             <div style="height: 220px;"><canvas id="priceChart"></canvas></div>
             <h3 style="margin-top:25px; margin-bottom:15px; font-size:14px; color:var(--blue);">📍 Regional Intelligence Map</h3>
-            <div id="map"></div>
+            <div style="position:relative;">
+                <div id="map"></div>
+                <div style="position:absolute; bottom:10px; right:10px; background:#020617; padding:10px; border-radius:10px; font-size:0.8rem; border: 1px solid rgba(255,255,255,0.1); z-index:400;">
+                    🌡️ Weather Map<br>
+                    <span style="color:#22c55e;">● Cool</span><br>
+                    <span style="color:#f97316;">● Warm</span><br>
+                    <span style="color:#ef4444;">● Hot</span>
+                </div>
+            </div>
         </main>
 
         <aside class="ui-panel right-panel">
 
     <div class="ai-feed-box" id="aiGlowBox">
-        <span class="ai-tag">AI PREDICTIVE INSIGHT</span>
-        <div id="aiPrediction" class="ai-insight">Awaiting Live Ledger Data...</div>
+        <span class="ai-tag">⚡ AI PREDICTIVE INTELLIGENCE</span>
+        <div id="aiPrediction" class="ai-insight" style="min-height: 80px;">Analyzing market patterns...</div>
+        <div id="aiMarketTrend" style="margin-top:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; font-size:0.75rem; line-height:1.5; color:var(--dim);">
+            <div style="margin-bottom:6px;"><strong style="color:var(--blue);">📊 Trend:</strong> <span id="trendText">Loading...</span></div>
+            <div style="margin-bottom:6px;"><strong style="color:var(--gold);">💰 Volatility:</strong> <span id="volatilityText">Calculating...</span></div>
+            <div><strong style="color:#10b981;">🎯 Alert:</strong> <span id="smartAlertText">Monitoring...</span></div>
+        </div>
     </div>
 
     <!-- 📊 LEDGER SECTION -->
@@ -1205,6 +1266,7 @@ body.light-mode .msg {
 
 <script type="module">
 let allReports = [];
+var priceChart = null;
 
     // 1. Firebase App
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -1237,6 +1299,52 @@ let allReports = [];
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    // ⌨️ Typing Effect Engine
+function typeText(element, text, speed = 40) {
+    let i = 0;
+    element.classList.add("typing-cursor");
+
+    function typing() {
+        if (i < text.length) {
+            element.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(typing, speed);
+        } else {
+            element.classList.remove("typing-cursor");
+        }
+    }
+
+    element.innerHTML = "";
+    typing();
+}
+    // 🔥 Activate login background
+    document.body.classList.add("login-mode");
+
+    // 🚀 Start typing effect on load
+        window.addEventListener("load", () => {
+            const el = document.getElementById("typingText");
+            if (el) {
+                typeText(
+                    el,
+                    "Nigeria’s Commodity Intelligence Network",
+                    35
+                );
+            }
+        });
+
+    // 🌤️ WEATHER CACHE SYSTEM
+    const weatherCache = {};
+    const WEATHER_TTL = 10 * 60 * 1000; // 10 minutes
+
+    // 📊 CHART DEBOUNCE SYSTEM
+    let chartUpdateTimer = null;
+
+    // 🌤️ AUTO CACHE REFRESH
+    setInterval(() => {
+        Object.keys(weatherCache).forEach(key => {
+            delete weatherCache[key];
+        });
+    }, WEATHER_TTL);
 
     // 4. USER PROFILE REPAIR SYSTEM
     /* 🛠️ USER PROFILE REPAIR SYSTEM */
@@ -1333,7 +1441,8 @@ let allReports = [];
     };
         
     
-    // 🔔 TOAST SYSTEM
+  // 🔔 TOAST SYSTEM (SAFE VERSION)
+// 🔔 TOAST SYSTEM
 window.showToast = function(message, icon = "📡") {
     let container = document.querySelector('.toast-container');
     if (!container) {
@@ -1347,12 +1456,12 @@ window.showToast = function(message, icon = "📡") {
     toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
     container.appendChild(toast);
 
-    // Auto-disappear
     setTimeout(() => {
         toast.classList.add('toast-fade-out');
         setTimeout(() => toast.remove(), 500);
     }, 4000);
 };
+
 
 // 🌐 SOCIAL HUB
 
@@ -1415,25 +1524,7 @@ function startSocialFeed() {
         feed.scrollTop = feed.scrollHeight;
     });
 }
-// 📢 MARKET ADS
-window.postAd = function() {
-    const input = document.getElementById("adInput");
-    const feed = document.getElementById("adsFeed");
 
-    if (!input || !feed) return;
-    if (!input.value.trim()) return;
-
-    const ad = document.createElement("div");
-    ad.style.padding = "8px";
-    ad.style.border = "1px dashed var(--dim)";
-    ad.style.borderRadius = "8px";
-    ad.style.marginBottom = "8px";
-    ad.innerHTML = input.value;
-
-    feed.prepend(ad);
-    input.value = "";
-
-};
 
 // ✅ INIT
 showToast("System Imports Loaded", "📥");
@@ -1464,7 +1555,8 @@ showToast("System Imports Loaded", "📥");
         "Watt Market (Calabar)": [4.9589, 8.3268]
     };
 
-    let currentCoords = "Searching...";
+    const OPENWEATHER_API_KEY = "YOUR_REAL_API_KEY_HERE";
+    let currentCoords = { lat: 0, lng: 0 };
     let isGPSEnabled = false;
     let watchID = null;
     let activeMarkers = {};
@@ -1474,21 +1566,36 @@ showToast("System Imports Loaded", "📥");
     let audioContext = null;
     let aiCycleInterval = null;
     let currentCycleIndex = 0;
+    let currentCommodity = "ALL";
     let dynamicHubs = { ...preInstalledHubs }; 
     let hubDocMapping = {}; 
     let currentUserData = null;
     let leaderboardStarted = false;
 
-    const commodityRegistry = {
+        // 🧠 GLOBAL AI MEMORY
+        let priceMap = {};
+
+        // 🌦️ CLIMATE INTELLIGENCE MEMORY
+        let climateData = {};
+
+         const commodityRegistry = {
         "Rice (Local)": { color: "#f87171", freq: 440 }, 
         "Beans (Brown)": { color: "#fbbf24", freq: 349 }, 
         "Maize": { color: "#4ade80", freq: 659 },        
         "Sorghum": { color: "#818cf8", freq: 784 },      
         "Wheat": { color: "#f472b6", freq: 987 }         
-    };
+                         };
 
     function getColor(name) { return commodityRegistry[name]?.color || "#38bdf8"; }
     function getFreq(name) { return commodityRegistry[name]?.freq || 880; }
+    function hexToRgba(hex, alpha = 0.1) {
+        const cleaned = hex.replace('#', '');
+        const bigint = parseInt(cleaned, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
     
     // 🛠️ Force inputs to always be interactive
 setTimeout(() => {
@@ -1518,21 +1625,69 @@ setTimeout(() => {
         });
     }
 
+    async function fetchWeather(lat, lon) {
+
+        const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+        const now = Date.now();
+
+        // ✅ USE CACHE IF STILL VALID
+        if (weatherCache[key] && (now - weatherCache[key].timestamp < WEATHER_TTL)) {
+            return weatherCache[key].data;
+        }
+
+        try {
+            const res = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+            );
+
+            const data = await res.json();
+
+            const weather = {
+                temp: data.current_weather.temperature,
+                condition: mapWeatherCode(data.current_weather.weathercode)
+            };
+
+            // ✅ STORE IN CACHE
+            weatherCache[key] = {
+                data: weather,
+                timestamp: now
+            };
+
+            return weather;
+
+        } catch (err) {
+            console.error("Weather API error:", err);
+
+            return weatherCache[key]?.data || { temp: 30, condition: "Clear" };
+        }
+    }
+
+function mapWeatherCode(code) {
+    if (code === 0) return "Clear";
+    if (code <= 3) return "Cloudy";
+    if (code <= 48) return "Fog";
+    if (code <= 67) return "Rain";
+    if (code <= 77) return "Snow";
+    if (code <= 99) return "Storm";
+    return "Clear";
+}
+
     window.openStreetView = function(lat, lng) {
         const url = `https://www.google.com/maps?q=${lat},${lng}`;
         window.open(url, '_blank');
     };
 
    /* 🔔 Market Alert System */
-function triggerVisualAlerts(item, price) {
-    const color = (typeof getColor === "function") ? getColor(item) : "#38bdf8";
-    document.documentElement.style.setProperty('--pulse-color', color);
-    document.documentElement.style.setProperty('--pulse-speed', '0.5s');
+    function triggerVisualAlerts(item, price) {
+        generateClimateAlerts(item);
+        const color = (typeof getColor === "function") ? getColor(item) : "#38bdf8";
+        document.documentElement.style.setProperty('--pulse-color', color);
+        document.documentElement.style.setProperty('--pulse-speed', '0.5s');
 
-    if (typeof playSuccessTone === "function") playSuccessTone();
+        if (typeof playSuccessTone === "function") playSuccessTone();
 
-    const pop = document.getElementById('marketPopup');
-    if (pop) {
+        const pop = document.getElementById('marketPopup');
+        if (pop) {
         pop.innerHTML = `🔔 <strong>NEW ENTRY:</strong> ${item} @ ₦${price.toLocaleString()}`;
         pop.style.background = color;
         pop.classList.add('show');
@@ -1541,6 +1696,53 @@ function triggerVisualAlerts(item, price) {
             document.documentElement.style.setProperty('--pulse-speed', '2s');
             pop.classList.remove('show');
         }, 4000);
+    }
+}
+
+function analyzeClimateImpact(item) {
+    const data = climateData[item];
+    if (!data || data.length < 5) return null;
+
+    // Use buildTimeSeries to get properly formatted data
+    const timeSeries = buildTimeSeries(data);
+
+    let hotPrices = [];
+    let coldPrices = [];
+    let rainPrices = [];
+
+    timeSeries.forEach(d => {
+        if (d.temp > 30) hotPrices.push(d.price);
+        else coldPrices.push(d.price);
+
+        if (d.condition === "Rain") rainPrices.push(d.price);
+    });
+
+    const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length || 0;
+
+    return {
+        hotAvg: avg(hotPrices),
+        coldAvg: avg(coldPrices),
+        rainAvg: avg(rainPrices)
+    };
+}
+
+function generateClimateAlerts(item) {
+    const analysis = analyzeClimateImpact(item);
+    if (!analysis) return;
+
+    const latest = priceMap[item]?.slice(-1)[0];
+    if (!latest) return;
+
+    if (analysis.rainAvg && latest > analysis.rainAvg * 1.2) {
+        showToast(`🌧️ Rain Surge: ${item} rising due to rainfall`, "⚠️");
+    }
+
+    if (analysis.hotAvg && latest > analysis.hotAvg * 1.15) {
+        showToast(`🔥 Heat Pressure: ${item} supply tightening`, "📈");
+    }
+
+    if (analysis.coldAvg && latest < analysis.coldAvg * 0.9) {
+        showToast(`❄️ Stable Supply: ${item} easing`, "📉");
     }
 }
 
@@ -1558,17 +1760,6 @@ function showPointPop(pts) {
     setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
 
-/* 🎯 LOGO PULSE TRIGGER */
-function triggerPulse() {
-    const logo = document.getElementById("appLogo");
-    if (!logo) return;
-
-    // We remove and re-add the class so the animation 
-    // plays again every time points are earned
-    logo.classList.remove("pulse"); 
-    void logo.offsetWidth;          // This line "resets" the element's state
-    logo.classList.add("pulse");    
-}
 
 /* 🚀 THE DOOR OPENER (Now outside the engine so it works) */
     function enterApp() {
@@ -1578,6 +1769,9 @@ function triggerPulse() {
     const registerCard = document.getElementById('registerCard');
     const mainApp = document.getElementById('mainApp');
     const welcomeView = document.getElementById('welcomeView');
+
+    // 🔥 Remove login background
+    document.body.classList.remove("login-mode");
 
     // 1. Hide all entrance UI
     if (loginCard) loginCard.style.display = 'none';
@@ -1787,26 +1981,27 @@ function startLeaderboardUpdates() {
     leaderboard.innerHTML = "";
 
     let rank = 1; // ✅ start ranking
-
+    // 🧠 AI DATA COLLECTION
+    
     snapshot.forEach(docSnap => {
-        const user = docSnap.data();
+    const user = docSnap.data();
 
-        const row = document.createElement("tr");
+    const row = document.createElement("tr");
 
-            row.innerHTML = `
-            <td>
-                <span class="rank-badge">#${rank}</span>
-                <strong>${user.name || "User"}</strong>
-            </td>
-            <td class="points-cell">
-                ${user.points || 0} pts
-            </td>
-                `;
+    const displayName = user.name || (user.email ? user.email.split("@")[0] : "Operator");
+    const points = user.points || 0;
 
-        leaderboard.appendChild(row);
+    row.innerHTML = `
+        <td>
+            <span class="rank-badge">#${rank}</span> ${displayName}
+        </td>
+        <td class="points-cell">${points.toLocaleString()} pts</td>
+    `;
 
-        rank++; // ✅ THIS is where it goes
-    });
+    leaderboard.appendChild(row);
+
+    rank++;
+});
 });
 }
 
@@ -1869,20 +2064,98 @@ function startLeaderboardUpdates() {
     window.logout = async () => { await signOut(auth); location.reload(); };
 
     function initMap() {
-        if (!map) {
-            map = L.map('map').setView([11.8333, 13.1500], 7);
-            
-            if (map) {
-                map.setView([11.8333, 13.1500], 6);
-            }
+    if (!map) {
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap',
-                crossOrigin: true
-            }).addTo(map);
+        map = L.map('map').setView([11.7488, 11.9671], 14);
+
+        // ✅ Tile Layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap',
+            crossOrigin: true
+        }).addTo(map);
+
+        // ✅ Cluster group (IMPORTANT)
+        const markers = L.markerClusterGroup();
+        map.addLayer(markers);
+
+        // --- DYNAMIC MARKET MAPPING ---
+        if (typeof marketData !== 'undefined' && marketData.length > 0) {
+
+            const heatPoints = [];
+
+            marketData.forEach(record => {
+
+                let lat = 0;
+                let lng = 0;
+
+                // ✅ Convert gps string → numbers
+                if (record.gps && typeof record.gps === "string" && record.gps.includes(",")) {
+                    const parts = record.gps.split(",").map(n => parseFloat(n.trim()));
+                    if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+                        lat = parts[0];
+                        lng = parts[1];
+                    }
+                }
+
+                // ✅ Only valid coordinates
+                if (lat !== 0 && lng !== 0) {
+
+                    // 🔥 Heatmap data
+                    heatPoints.push([lat, lng, 0.5]);
+
+                    // 🔵 Cluster marker
+                    markers.addLayer(
+                        L.marker([lat, lng]).bindPopup(`
+                            <div style="color:#020617; font-family:sans-serif;">
+                                <b style="color:#38bdf8;">${record.item || 'Commodity'}</b><br>
+                                ₦${Number(record.price).toLocaleString()}<br>
+                                <small>${record.location || 'Unknown Market'}</small><br>
+                                <button onclick="openStreetView(${lat}, ${lng})"
+                                    style="margin-top:6px; width:100%; background:#38bdf8; color:white; border:none; border-radius:4px; padding:5px; cursor:pointer;">
+                                    View Location
+                                </button>
+                            </div>
+                        `)
+                    );
+                }
+            });
+
+            // 🧠 AI INSIGHT ENGINE
+const insights = [];
+
+for (const item in priceMap) {
+    const prices = priceMap[item];
+
+    if (!prices || prices.length < 2) continue;
+
+    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+    const latest = prices[prices.length - 1];
+
+    // 📊 Average insight
+    insights.push(`📊 ${item}: Avg ₦${Math.round(avg).toLocaleString()}`);
+
+    // ⚠️ Anomaly detection
+    if (latest > avg * 1.3) {
+        insights.push(`⚠️ ${item} price unusually HIGH`);
+    } else if (latest < avg * 0.7) {
+        insights.push(`📉 ${item} price unusually LOW`);
+    }
+}
+
+
+            // 🔥 Heatmap render
+            if (heatPoints.length > 0) {
+                L.heatLayer(heatPoints, {
+                    radius: 25,
+                    blur: 15,
+                    maxZoom: 10
+                }).addTo(map);
+            }
         }
     }
+}
 
     window.toggleGPS = () => {
         isGPSEnabled = !isGPSEnabled;
@@ -1891,8 +2164,11 @@ function startLeaderboardUpdates() {
         if (isGPSEnabled) {
             btn.innerText = "🛰️ Satellite Tracking: ON"; btn.style.color = "#38bdf8";
             watchID = navigator.geolocation.watchPosition((pos) => {
-                currentCoords = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
-                status.innerText = `GPS Active: ${currentCoords}`;
+                currentCoords = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                };
+                status.innerText = `GPS Active: ${currentCoords.lat.toFixed(4)},${currentCoords.lng.toFixed(4)}`;
             }, (err) => { console.error(err); status.innerText = "GPS Error"; });
         } else {
             btn.innerText = "🛰️ Satellite Tracking: OFF"; btn.style.color = ""; status.innerText = "Tracking: Passive Mode";
@@ -1900,17 +2176,71 @@ function startLeaderboardUpdates() {
         }
     };
 
-    const priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
+    priceChart = new Chart(document.getElementById('priceChart').getContext('2d'), {
         type: 'line',
-        data: { labels: [], datasets: [] },
+        data: { 
+    labels: [], 
+    datasets: [
+        {
+            label: "Price (₦)",
+            data: [],
+            borderColor: "#38bdf8",
+            backgroundColor: "rgba(56,189,248,0.1)",
+            tension: 0.4,
+            yAxisID: "y"
+        },
+        {
+            label: "Temperature (°C)",
+            data: [],
+            borderColor: "#f97316",
+            backgroundColor: "rgba(249,115,22,0.1)",
+            tension: 0.4,
+            yAxisID: "y1"
+        },
+        {
+            label: "Prediction",
+            data: [],
+            borderColor: "#22c55e",
+            borderDash: [5,5],
+            tension: 0.4,
+            yAxisID: "y"
+        }
+    ] 
+},
         options: { 
             responsive: true, 
             maintainAspectRatio: false, 
-            plugins: { legend: { display: false } }, 
+            plugins: { 
+                legend: { 
+                    display: true, 
+                    position: 'top',
+                    labels: {
+                        color: '#f8fafc',
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 10,
+                        padding: 16
+                    }
+                } 
+            }, 
             scales: { 
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-            } 
+                        y: { 
+                            position: "left",
+                            grid: { color: 'rgba(255,255,255,0.05)' }, 
+                            ticks: { color: '#94a3b8' },
+                            title: { display: true, text: "Price (₦)", color: "#94a3b8" }
+                        },
+                        y1: {
+                            position: "right",
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#94a3b8' },
+                            title: { display: true, text: "Temp (°C)", color: "#94a3b8" }
+                        },
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { color: '#94a3b8' } 
+                        }
+                    } 
         }
     });
 
@@ -1929,7 +2259,7 @@ function startLeaderboardUpdates() {
         snap.forEach(d => {
             const data = d.data();
             hubs[data.name] = [data.lat, data.lng];
-            hubDocMapping[data.name] = d.id;
+            hubDocMapping[data.name] = doc.id;
         });
 
         // ✅ SORT EVERYTHING
@@ -1973,7 +2303,7 @@ function startLeaderboardUpdates() {
     window.addHub = async () => {
         const name = prompt("Enter Market Hub Name:");
         if (!name) return;
-        const coords = prompt("Enter Coordinates (Lat, Lng):", isGPSEnabled ? currentCoords : "11.8333,13.1500");
+        const coords = prompt("Enter Coordinates (Lat, Lng):", isGPSEnabled ? `${currentCoords.lat.toFixed(4)},${currentCoords.lng.toFixed(4)}` : "11.8333,13.1500");
         if (!coords || !coords.includes(',')) return alert("Invalid Coordinates.");
         const [lat, lng] = coords.split(',').map(Number);
         await addDoc(collection(db, "MarketHubs"), { name: name, lat: lat, lng: lng, timestamp: serverTimestamp() });
@@ -2033,17 +2363,17 @@ window.addCommodity = async () => {
 };
 
        /* 📡 SUBMIT SYSTEM (Fixed Anti-Spam + Reset + Points Display) */
-        let isSubmitting = false; // 🔒 LOCK
+let isSubmitting = false; // 🔒 LOCK
 
-        window.submitData = async function () {
+    window.submitData = async function () {
 
-        if (isSubmitting) return; // 🚫 block spam clicks
-        isSubmitting = true;
+    if (isSubmitting) return; // 🚫 block spam clicks
+    isSubmitting = true;
 
-        const btn = document.getElementById("submitBtn");
-        if (btn) btn.disabled = true;
+    const btn = document.getElementById("submitBtn");
+    if (btn) btn.disabled = true;
 
-     const name = document.getElementById("f_rep_name").value.trim();
+    const name = document.getElementById("f_rep_name").value.trim();
     const phone = document.getElementById("f_rep_phone").value.trim();
     const item = document.getElementById("f_item").value;
     const location = document.getElementById("f_loc").value;
@@ -2079,31 +2409,64 @@ window.addCommodity = async () => {
         return;
     }
 
-    const gpsString = (currentCoords && currentCoords.lat) 
-        ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}` 
-        : "0, 0";
+    // 📍 GPS COORDINATES
+    const lat = (currentCoords && currentCoords.lat) ? currentCoords.lat : 0;
+    const lng = (currentCoords && currentCoords.lng) ? currentCoords.lng : 0;
+    const gpsString = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
+    // 🌤️ CLIMATE IMPACT TRACKING (Patched Block)
+    let weatherData = null;
+    try {
+        if (typeof fetchWeather === "function") {
+            const weather = await fetchWeather(lat, lng);
+            if (weather) {
+                weatherData = weather; // Store for Firestore
+                
+                // Update local analytics object
+                if (typeof climateData !== "undefined") {
+                    if (!climateData[item]) climateData[item] = [];
+                    climateData[item].push({
+                        price: Number(price),
+                        temp: weather.temp || 30,
+                        condition: weather.condition || "Clear",
+                        timestamp: new Date() // Use timestamp for consistency
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        console.warn("Weather fetch failed, continuing with submission...", err);
+    }
+
+    // ⚡ FIRESTORE SAVE - STEP 1: STORE TIME WITH EVERYTHING
     try {
         const docRef = await addDoc(collection(db, "MarketData"), {
-    name,
-    phone,
-    item,
-    location,
-    price,
-    gps: gpsString,
-    userId: auth.currentUser?.uid || "anonymous",
-    userName: typeof getUserDisplayName === "function" ? getUserDisplayName() : "Operator",
-    timestamp: serverTimestamp()
-});
+            name,
+            phone,
+            item,
+            location,
+            price: Number(price), // Ensure price is a number
+            temp: weatherData?.temp || 30, // Store temp directly
+            condition: weatherData?.condition || "Clear", // Store condition directly
+            gps: gpsString,
+            weather: weatherData, // Keep full weather object for backward compatibility
+            userId: auth.currentUser?.uid || "anonymous",
+            userName: typeof getUserDisplayName === "function" ? getUserDisplayName() : "Operator",
+            timestamp: serverTimestamp() // Store timestamp
+        });
 
-// 🔥 ADD THIS (VERY IMPORTANT)
-    await updateDoc(docRef, {
-    id: docRef.id
-});
+        // 🔥 ADD ID TO DOC
+        await updateDoc(docRef, {
+            id: docRef.id
+        });
+
+        // ✅ TRIGGER PULSE SYSTEM
+        if (typeof triggerPulseAlert === "function") {
+            triggerPulseAlert(item);
+        }
 
         // 🎯 SMART POINTS
         let points = 10;
-
         if (!localStorage.getItem("visited_" + location)) {
             points += 5;
             localStorage.setItem("visited_" + location, true);
@@ -2111,39 +2474,23 @@ window.addCommodity = async () => {
 
         if (auth.currentUser) {
             const userRef = doc(db, "Users", auth.currentUser.uid);
-
             await updateDoc(userRef, {
                 points: increment(points)
             });
         }
 
-        // ✅ SAVE ONLY AFTER SUCCESS
-        localStorage.setItem("lastSubmitTime", now);
+        // 💾 UPDATE LOCAL STORAGE & RESET
+        localStorage.setItem("lastSubmitTime", Date.now());
         localStorage.setItem("lastEntry", JSON.stringify({ item, location, price }));
+        showToast(`✅ Data Synced! +${points} PTS`, "🚀");
+        if (typeof resetForm === "function") resetForm();
 
-        // 🔔 FIXED TOAST (shows real points)
-        showToast(`✅ Submitted (+${points} pts)`, "📍");
-
-        // ✨ POINT POP
-        if (typeof showPointPop === "function") {
-            showPointPop(points);
-        }
-
-        // 🔄 RESET FORM (FULL RESET)
-        document.getElementById("f_rep_name").value = "";
-        document.getElementById("f_rep_phone").value = "";
-        document.getElementById("f_item").value = "";
-        document.getElementById("f_loc").value = "";
-        document.getElementById("f_price").value = "";
-
-        triggerPulse(); // 🔔 trigger logo pulse
-
-    } catch (err) {
-        console.error(err);
-        showToast("📡 Saved Offline", "💾");
+    } catch (error) {
+        console.error("Submission Error:", error);
+        showToast("❌ Connection Error", "📡");
+    } finally {
+        resetSubmitState();
     }
-
-    resetSubmitState();
 };
 
 // 🔁 RESET BUTTON + LOCK
@@ -2153,6 +2500,35 @@ function resetSubmitState() {
     if (btn) btn.disabled = false;
 }
 
+// 🔄 RESET FORM FUNCTION
+window.resetForm = function() {
+    document.getElementById("f_rep_name").value = "";
+    document.getElementById("f_rep_phone").value = "";
+    document.getElementById("f_item").value = "";
+    document.getElementById("f_loc").value = "";
+    document.getElementById("f_price").value = "";
+    showToast("📝 Form cleared", "✨");
+};
+
+// 🔍 FILTER OPERATORS FUNCTION
+window.filterOperators = function() {
+    const searchInput = document.getElementById("opSearch");
+    const opList = document.getElementById("opList");
+    if (!searchInput || !opList) return;
+
+    const searchTerm = searchInput.value.toLowerCase();
+    const operatorCards = opList.querySelectorAll("[data-operator-name]");
+    
+    operatorCards.forEach(card => {
+        const operatorName = card.getAttribute("data-operator-name").toLowerCase();
+        if (operatorName.includes(searchTerm)) {
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+    });
+};
+
 window.syncOfflineData = async function () {
     const data = JSON.parse(localStorage.getItem("offlineData") || "[]");
 
@@ -2161,7 +2537,10 @@ window.syncOfflineData = async function () {
     for (let entry of data) {
         await addDoc(collection(db, "MarketData"), {
             ...entry,
-            timestamp: serverTimestamp()
+            price: Number(entry.price) || 0, // Ensure price is a number
+            temp: entry.temp || 30, // Ensure temp is available
+            condition: entry.condition || "Clear", // Ensure condition is available
+            timestamp: serverTimestamp() // Add timestamp for synced data
         });
     }
 
@@ -2183,16 +2562,16 @@ window.manageUsers = async function() {
         snap.forEach(d => {
             const u = d.data();
             list.insertAdjacentHTML('beforeend', `
-                <div style="background:rgba(255,255,255,0.05); padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+                <div data-operator-name="${u.name || 'User'}" style="background:rgba(255,255,255,0.05); padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
                             <div style="font-weight:bold; color:var(--gold);">${u.name || 'User'}</div>
                             <div style="font-size:0.7rem; color:var(--dim);">${u.role || 'User'} • ${u.points || 0} PTS</div>
                         </div>
                         <div style="display:flex; gap:6px;">
-                            <button onclick="cycleRole('${d.id}', '${u.role}')" style="background:var(--blue); border:none; color:black; font-size:0.6rem; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer;">PROMOTE</button>
-                            <button onclick="addBonus('${d.id}')" style="background:#22c55e; border:none; color:white; font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">+50 PTS</button>
-                            <button onclick="deleteUser('${d.id}')" style="background:#ef4444; border:none; color:white; font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">DEL</button>
+                            <button onclick="cycleRole('${doc.id}', '${u.role}')" style="background:var(--blue); border:none; color:black; font-size:0.6rem; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer;">PROMOTE</button>
+                            <button onclick="addBonus('${doc.id}')" style="background:#22c55e; border:none; color:white; font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">+50 PTS</button>
+                            <button onclick="deleteUser('${doc.id}')" style="background:#ef4444; border:none; color:white; font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">DEL</button>
                         </div>
                     </div>
                 </div>
@@ -2234,6 +2613,20 @@ window.cycleRole = async (uid, currentRole) => {
         }
         startLiveUpdates();
     };
+
+    // 🔧 STEP 2 — BUILD ALIGNED SERIES
+    function buildTimeSeries(data) {
+        return data.map(d => {
+            const time = d.timestamp?.toDate ? d.timestamp.toDate() : new Date();
+
+            return {
+                time: time.getTime(),
+                price: Number(d.price) || 0,
+                temp: d.temp || 30,
+                condition: d.condition || "Clear"
+            };
+        }).sort((a, b) => a.time - b.time);
+    }
 
     function updateAI(data) {
     if (!data || data.length < 1) return;
@@ -2313,21 +2706,25 @@ function startAdsFeed() {
     });
 }
 
-    function startLiveUpdates() {
-    // ✅ Ensure collection name is "MarketData" to match your submission logic
+    /* 🔄 LIVE DATA LISTENER */
+function startLiveUpdates() {
     const q = query(collection(db, "MarketData"), orderBy("timestamp", "desc"), limit(40));
 
     onSnapshot(q, (snaps) => {
-        const body = document.getElementById('ledgerBody');
-        const ticker = document.getElementById('liveTicker');
-        
-        if (body) body.innerHTML = ""; 
-        if (ticker) ticker.innerHTML = "";
-        
+        // 🔥 RESET LOCAL MEMORY
+        priceMap = {};
+        climateData = {};
         let dataByCommodity = {};
         let allLabels = new Set();
+
+        const body = document.getElementById('ledgerBody');
+        const ticker = document.getElementById('liveTicker');
+
+        // Clear UI before redrawing to prevent duplicates
+        if (body) body.innerHTML = "";
+        if (ticker) ticker.innerHTML = "";
         
-        // 1. Clear old markers safely before redrawing
+        // 1. Clear old markers safely
         if (typeof activeMarkers !== 'undefined') {
             for (let id in activeMarkers) {
                 if(map && activeMarkers[id]) map.removeLayer(activeMarkers[id]);
@@ -2335,257 +2732,339 @@ function startAdsFeed() {
             activeMarkers = {};
         }
 
-        allReports = snaps.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        const allReports = snaps.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
 
-        snaps.forEach((d) => {
-            const r = d.data();
+        // 🌤️ LOCATION TRACKER FOR WEATHER
+        const processedLocations = new Set();
+
+        // 🟢 Start processing data
+        snaps.forEach((doc) => {
+            const r = doc.data();
+            const docId = doc.id;
             
-            // Timestamp handling
             const dateObj = r.timestamp?.toDate ? r.timestamp.toDate() : new Date();
             const time = dateObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            
+
             const itemName = r.item || r.commodity || "Unknown";
             const itemPrice = Number(r.price) || 0;
             const location = r.location || "N/A";
-            
-            // Apply Filters (Stay in the loop but don't render if filtered)
-            if(typeof activeFilters !== 'undefined' && !activeFilters.has("ALL") && !activeFilters.has(itemName)) return;
-
             const cColor = (typeof getColor === "function") ? getColor(itemName) : "#38bdf8";
-            
-            // Prepare Chart Data
+
+            // 🧠 BACKGROUND LOGIC (Always runs for analytics)
+            if (!priceMap[itemName]) priceMap[itemName] = [];
+            priceMap[itemName].push(itemPrice);
+
             if(!dataByCommodity[itemName]) dataByCommodity[itemName] = [];
-            dataByCommodity[itemName].push({x: time, y: itemPrice}); 
+            dataByCommodity[itemName].push({x: time, y: itemPrice, timeId: dateObj.getTime()}); 
             allLabels.add(time);
-            
-            // 2. Update Ticker
-            if (ticker) {
-                ticker.insertAdjacentHTML('beforeend', `
-                    <span class="ticker-item">${itemName.toUpperCase()}: 
-                        <span style="color:${cColor}">₦${itemPrice.toLocaleString()}</span> 
-                        <span style="font-size:0.6rem; opacity:0.7;"> @ ${location}</span>
-                    </span>`);
+
+            if (typeof climateData !== "undefined" && r.weather) {
+                if (!climateData[itemName]) climateData[itemName] = [];
+                climateData[itemName].push({
+                    price: itemPrice,
+                    temp: Number(r.weather.temp || 30),
+                    humidity: Number(r.weather.humidity || 0),
+                    condition: r.weather.condition || "Clear",
+                    time: dateObj.getTime()
+                });
             }
-            
-            // 3. Update Map Markers (Handled with your string GPS logic)
-            let safeCoords = [11.8333, 13.1500]; // Default Damaturu
-            if (r.gps && typeof r.gps === "string" && r.gps.includes(',')) {
-                const parts = r.gps.split(',').map(n => parseFloat(n.trim()));
-                if (!isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] !== 0) {
-                    safeCoords = [parts[0], parts[1]];
+
+            // 🎯 FILTER CHECK
+            const shouldRender = !(
+                typeof activeFilters !== 'undefined' &&
+                !activeFilters.has("ALL") &&
+                !activeFilters.has(itemName)
+            );
+
+            // 🖼️ UI RENDERING (Only if shouldRender is true)
+            if (shouldRender) {
+                // Update Ticker
+                if (ticker) {
+                    ticker.insertAdjacentHTML('beforeend', `
+                        <span class="ticker-item">${itemName.toUpperCase()}: 
+                            <span style="color:${cColor}">₦${itemPrice.toLocaleString()}</span> 
+                            <span style="font-size:0.6rem; opacity:0.7;"> @ ${location}</span>
+                        </span>`);
+                }
+
+                // Update Ledger Table
+                if (body) {
+                    body.insertAdjacentHTML('beforeend', `
+                        <tr data-id="${docId}">
+                            <td>${time}</td>
+                            <td style="color:${cColor}; font-weight:bold;">${itemName}</td>
+                            <td>₦${itemPrice.toLocaleString()}</td>
+                            <td style="text-align:right;">
+                                <button class="btn-mini" onclick="openStreetView('${r.gps || '0,0'}')">📍 MAP</button>
+                                <button class="btn-mini" style="background:#ef4444; color:white;" onclick="deleteEntry('${docId}', this)">DEL</button>
+                            </td>
+                        </tr>`);
+                }
+
+                // Update Map Markers
+                let safeCoords = [11.8333, 13.1500]; 
+                if (r.gps && typeof r.gps === "string" && r.gps.includes(',')) {
+                    const parts = r.gps.split(',').map(n => parseFloat(n.trim()));
+                    if (!isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] !== 0) {
+                        safeCoords = [parts[0], parts[1]];
+                    }
+                }
+
+                if (safeCoords[0] !== 0) {
+                    const locKey = `${safeCoords[0].toFixed(2)},${safeCoords[1].toFixed(2)}`;
+
+                    if (!processedLocations.has(locKey)) {
+
+                        processedLocations.add(locKey);
+
+                        fetchWeather(safeCoords[0], safeCoords[1]).then(w => {
+
+                            if (!climateData[itemName]) climateData[itemName] = [];
+
+                            climateData[itemName].push({
+                                temp: w.temp,
+                                condition: w.condition,
+                                time: dateObj.getTime()
+                            });
+
+                            // ✅ ONE controlled chart update
+                            clearTimeout(chartUpdateTimer);
+                            chartUpdateTimer = setTimeout(() => {
+                                updateChartFromLive(dataByCommodity);
+                            }, 300);
+                        });
+                    }
+                }
+
+                if(typeof map !== 'undefined' && map) {
+                    let temp = (r.weather && r.weather.temp) || 30;
+                    let heatColor = "#22c55e"; // cool
+                    
+                    if (temp > 35) heatColor = "#ef4444"; // hot
+                    else if (temp > 30) heatColor = "#f97316"; // warm
+                    
+                    activeMarkers[docId] = L.circleMarker(safeCoords, {
+                        radius: 8, fillColor: heatColor, color: "#fff", weight: 2, fillOpacity: 0.8
+                    })
+                    .addTo(map)
+                    .bindPopup(`<b>${itemName}</b><br>₦${itemPrice.toLocaleString()}<br>🌡️ ${temp}°C`);
                 }
             }
+        }); 
 
-            if(typeof map !== 'undefined' && map && safeCoords[0] !== 0) {
-                activeMarkers[d.id] = L.circleMarker(safeCoords, {
-                    radius: 8, 
-                    fillColor: cColor, 
-                    color: "#fff", 
-                    weight: 2, 
-                    fillOpacity: 0.8
-                })
-                .addTo(map)
-                .bindPopup(`
-                    <div style="color:#020617;">
-                        <b style="color:${cColor}">${itemName}</b><br>
-                        ₦${itemPrice.toLocaleString()}<br>
-                        <small>${location}</small>
-                    </div>`);
-            }
-            
-            // 4. Update Ledger
-            if (body) {
-    body.insertAdjacentHTML('beforeend', `
-            <tr>
-                <td>${time}</td>
-                <td style="color:${cColor}; font-weight:bold;">${itemName}</td>
-                <td>₦${itemPrice.toLocaleString()}</td>
-                <td style="text-align:right;">
-                    <button type="button" 
-                        class="btn-mini" 
-                        style="background:#ef4444; border:none; color:white; padding:2px 5px; border-radius:4px; cursor:pointer;" 
-                        onclick="deleteEntry('${d.id}')">
-                        DEL
-                    </button>
-                </td>
-            </tr>`);
-}
-        });
+             clearTimeout(chartUpdateTimer);
+             chartUpdateTimer = setTimeout(() => {
+                 updateChartFromLive(dataByCommodity);
+             }, 300);
+             renderChartToggles(dataByCommodity);
 
-        // 5. Update Chart (Optimized)
-        if (typeof priceChart !== 'undefined' && priceChart) {
-            const sortedLabels = Array.from(allLabels).reverse();
-            priceChart.data.labels = sortedLabels;
-            priceChart.data.datasets = Object.keys(dataByCommodity).map(name => ({ 
-                label: name, 
-                data: sortedLabels.map(l => dataByCommodity[name].find(e => e.x === l)?.y || null), 
-                borderColor: (typeof getColor === "function") ? getColor(name) : "#38bdf8", 
-                backgroundColor: 'transparent',
-                tension: 0.4, 
-                spanGaps: true 
-            }));
-            priceChart.update('none'); // Update without animation for performance
-        }
-
+        // 🏆 REFRESH SYSTEMS (After data loop finishes)
+        if (typeof updateLeaderboard === "function") updateLeaderboard();
         if (typeof updateAI === "function") updateAI(allReports);
-        
-        // UI Stat Counter
+
+        // 📈 UPDATE CHART
+        // Chart update is handled by updateChartFromLive() so we preserve the temperature dataset.
+
+        // 📊 UI STATS & NOTIFICATIONS
         const sessionEl = document.getElementById('sessionCount');
         if (sessionEl) sessionEl.innerText = snaps.size;
-        
-        // Notification Logic
-        if (!isInitialLoad && snaps.docChanges().some(change => change.type === "added")) {
+
+        if (typeof isInitialLoad !== 'undefined' && !isInitialLoad && snaps.docChanges().some(c => c.type === "added")) {
             if (typeof playBeep === "function") playBeep(2);
         }
         isInitialLoad = false;
+    }); 
+        }
+            function movingAverage(data, window = 5) {
+    return data.map((_, i, arr) => {
+        if (i < window) return null;
+
+        let slice = arr.slice(i - window, i);
+        let avg = slice.reduce((a,b)=>a+b,0) / slice.length;
+
+        return avg;
     });
-}
+    }
 
-    /* 🛠️ NAVIGATION & MENU ENGINE (Updated) */
-/* 🛠️ NAVIGATION & MENU ENGINE */
-    window.toggleMenu = (event) => {
-        if (event) event.stopPropagation(); 
-        const menu = document.getElementById('optionsMenu');
-        menu.classList.toggle('show');
-    };
+    function zScore(data) {
+            const mean = data.reduce((a,b)=>a+b,0)/data.length;
 
-    // Close menu when clicking anywhere else
-    document.addEventListener('click', (event) => {
-        const menu = document.getElementById('optionsMenu');
-        const gear = document.querySelector('.gear-icon');
-        if (menu && menu.classList.contains('show')) {
-            if (!menu.contains(event.target) && !gear.contains(event.target)) {
-                menu.classList.remove('show');
+            const std = Math.sqrt(
+                data.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / data.length
+            );
+
+            return data.map(v => (v - mean) / std);
+         }
+
+         function correlation(x, y) {
+
+            const n = x.length;
+
+            const avgX = x.reduce((a,b)=>a+b,0)/n;
+            const avgY = y.reduce((a,b)=>a+b,0)/n;
+
+            let num = 0, denX = 0, denY = 0;
+
+            for (let i = 0; i < n; i++) {
+                num += (x[i] - avgX) * (y[i] - avgY);
+                denX += Math.pow(x[i] - avgX, 2);
+                denY += Math.pow(y[i] - avgY, 2);
             }
+
+            return num / Math.sqrt(denX * denY);
         }
+
+
+                /* 🛠️ NAVIGATION & MENU ENGINE (Updated) */
+            /* 🛠️ NAVIGATION & MENU ENGINE */
+                window.toggleMenu = (event) => {
+                    if (event) event.stopPropagation(); 
+                    const menu = document.getElementById('optionsMenu');
+                    menu.classList.toggle('show');
+                };
+
+            // Close menu when clicking anywhere else
+            document.addEventListener('click', (event) => {
+                const menu = document.getElementById('optionsMenu');
+                const gear = document.querySelector('.gear-icon');
+                if (menu && menu.classList.contains('show')) {
+                    if (!menu.contains(event.target) && !gear.contains(event.target)) {
+                        menu.classList.remove('show');
+                    }
+                }
     });
 
-    window.deleteReport = async function(id) {
-    if (!id) return alert("Invalid ID");
+                    window.deleteReport = async function(id) {
+                    if (!id) return alert("Invalid ID");
 
-    const confirmDelete = confirm("Delete this record?");
-    if (!confirmDelete) return;
+                    const confirmDelete = confirm("Delete this record?");
+                    if (!confirmDelete) return;
 
-    try {
-        // 🔥 FIRESTORE DELETE
-        if (window.db) {
-            await deleteDoc(doc(db, "MarketReports", id));
-        }
+                    try {
+                        // 🔥 FIRESTORE DELETE
+                        if (window.db) {
+                            await deleteDoc(doc(db, "MarketReports", id));
+                        }
 
-        // 🔥 LOCAL STORAGE FALLBACK
-        let data = JSON.parse(localStorage.getItem("marketData") || "[]");
-        data = data.filter(item => item.id !== id);
-        localStorage.setItem("marketData", JSON.stringify(data));
+                        // 🔥 LOCAL STORAGE FALLBACK
+                        let data = JSON.parse(localStorage.getItem("marketData") || "[]");
+                        data = data.filter(item => item.id !== id);
+                        localStorage.setItem("marketData", JSON.stringify(data));
 
-        alert("Deleted successfully");
+                        alert("Deleted successfully");
 
-        // 🔁 Update the UI without refreshing the whole page
-        if (window.loadMarketData) {
-            window.loadMarketData(); 
-            startAdsFeed(); // <--- Added directly under loadMarketData
-        } else if (typeof loadMarketData === "function") {
-            loadMarketData();
-            startAdsFeed(); // <--- Added directly under loadMarketData
-        } else {
-            console.log("Delete successful; manual refresh required to see changes.");
-        }
+                    // 🔁 Update the UI without refreshing the whole page
+                    if (window.loadMarketData) {
+                        window.loadMarketData(); 
+                        startAdsFeed(); // <--- Added directly under loadMarketData
+                    } else if (typeof loadMarketData === "function") {
+                        loadMarketData();
+                        startAdsFeed(); // <--- Added directly under loadMarketData
+                    } else {
+                        console.log("Delete successful; manual refresh required to see changes.");
+                    }
 
-    } catch (err) {
-        console.error("DELETE ERROR:", err);
-        alert("Delete failed: " + err.message);
-    }
-};
-    window.toggleTheme = () => document.body.classList.toggle('light-mode');
-    window.triggerUpdate = () => { location.reload(); };
-    /* 🔄 AUTH VIEW SWITCHER */
-    window.showRegister = () => {
-    const login = document.getElementById('loginCard');
-    const register = document.getElementById('registerCard');
-    if (login) login.style.display = 'none';
-    if (register) register.style.display = 'block';
-};
-
-     window.showLogin = () => {
-    const login = document.getElementById('loginCard');
-    const register = document.getElementById('registerCard');
-    if (register) register.style.display = 'none';
-    if (login) login.style.display = 'block';
-};
-    /* 🔔 Optimized Beep System (Safe Version) */
-    function playBeep(times = 3) {
-    // Only try to play if the browser allows it
-    if (!window.audioEnabled) return; 
-
-    let count = 0;
-    const beep = () => {
-        const audio = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-        audio.play().catch(e => {
-            console.log("Audio play blocked: Waiting for user click.");
-            window.audioEnabled = false; // Disable until we get a click
-        });
-        count++;
-        if (count < times) setTimeout(beep, 250);
+                } catch (err) {
+                    console.error("DELETE ERROR:", err);
+                    alert("Delete failed: " + err.message);
+                }
     };
-    beep();
-}
-
-// Enable audio as soon as the user clicks ANYTHING (like the login button)
-window.addEventListener('click', () => { window.audioEnabled = true; }, { once: true });
-/* 📈 Live Price Spike Alert */
-function detectSpike(item, newPrice) {
-    // Look at the live reports we've fetched from Firebase
-    // Assuming 'allReports' is your global array of market data
-    if (typeof allReports === 'undefined' || allReports.length === 0) return;
-
-    const previousReport = allReports.find(r => r.commodity === item);
-
-    if (previousReport) {
-        const oldPrice = previousReport.price;
-        const change = ((newPrice - oldPrice) / oldPrice) * 100;
-
-        // Alert if price moves more than 20%
-        if (Math.abs(change) > 20) {
-            const direction = change > 0 ? "SURGE 📈" : "CRASH 📉";
-            alert(`⚠ ${direction} detected for ${item}! Price changed by ${change.toFixed(1)}%`);
-            playBeep(2); // Double beep for warnings
-        }
-    }
-}
-
-/* 📊 Live Volatility Indicator */
-function getVolatility(item) {
-    if (typeof allReports === 'undefined') return "Loading...";
-    
-    const prices = allReports
-        .filter(r => r.commodity === item)
-        .map(r => r.price);
-
-    if (prices.length < 2) return "Stable ✅";
-
-    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-    const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length;
-
-    // Adjusted thresholds for Naira values
-    if (variance > 50000000) return "High 🔥"; 
-    if (variance > 10000000) return "Medium ⚠";
-    return "Low ✅";
-}
-
-/* 🔍 Search & Filter System */
-window.filterData = function () {
-    const selected = document.getElementById("filterItem")?.value || "";
-    const searchBox = document.getElementById("searchBox")?.value.toLowerCase() || "";
-    let rows = document.querySelectorAll("#ledgerBody tr");
-
-    rows.forEach(r => {
-        const text = r.innerText.toLowerCase();
-        // Shows the row if it matches BOTH the dropdown and the search text
-        const matchesDropdown = !selected || text.includes(selected.toLowerCase());
-        const matchesSearch = !searchBox || text.includes(searchBox);
-
-        r.style.display = (matchesDropdown && matchesSearch) ? "" : "none";
-    });
+                window.toggleTheme = () => document.body.classList.toggle('light-mode');
+                window.triggerUpdate = () => { location.reload(); };
+                /* 🔄 AUTH VIEW SWITCHER */
+                window.showRegister = () => {
+                const login = document.getElementById('loginCard');
+                const register = document.getElementById('registerCard');
+                if (login) login.style.display = 'none';
+                if (register) register.style.display = 'block';
 };
+
+                    window.showLogin = () => {
+                    const login = document.getElementById('loginCard');
+                    const register = document.getElementById('registerCard');
+                    if (register) register.style.display = 'none';
+                    if (login) login.style.display = 'block';
+                };
+                    /* 🔔 Optimized Beep System (Safe Version) */
+                    function playBeep(times = 3) {
+                    // Only try to play if the browser allows it
+                    if (!window.audioEnabled) return; 
+
+                    let count = 0;
+                    const beep = () => {
+                        const audio = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
+                        audio.play().catch(e => {
+                            console.log("Audio play blocked: Waiting for user click.");
+                            window.audioEnabled = false; // Disable until we get a click
+                        });
+                        count++;
+                        if (count < times) setTimeout(beep, 250);
+                    };
+                    beep();
+                }
+
+                // Enable audio as soon as the user clicks ANYTHING (like the login button)
+                window.addEventListener('click', () => { window.audioEnabled = true; }, { once: true });
+                /* 📈 Live Price Spike Alert */
+                function detectSpike(item, newPrice) {
+                    // Look at the live reports we've fetched from Firebase
+                    // Assuming 'allReports' is your global array of market data
+                    if (typeof allReports === 'undefined' || allReports.length === 0) return;
+
+                    const previousReport = allReports.find(r => r.commodity === item);
+
+                    if (previousReport) {
+                        const oldPrice = previousReport.price;
+                        const change = ((newPrice - oldPrice) / oldPrice) * 100;
+
+                        // Alert if price moves more than 20%
+                        if (Math.abs(change) > 20) {
+                            const direction = change > 0 ? "SURGE 📈" : "CRASH 📉";
+                            alert(`⚠ ${direction} detected for ${item}! Price changed by ${change.toFixed(1)}%`);
+                            playBeep(2); // Double beep for warnings
+                    }
+                }
+            }
+
+            function openStreetView(lat, lng) {
+                const url = `https://www.google.com/maps?q=${lat},${lng}&layer=c`;
+                window.open(url, "_blank");
+            }
+
+                /* 📊 Live Volatility Indicator */
+                function getVolatility(item) {
+                    if (typeof allReports === 'undefined') return "Loading...";
+                    
+                    const prices = allReports
+                        .filter(r => r.commodity === item)
+                        .map(r => r.price);
+
+                    if (prices.length < 2) return "Stable ✅";
+
+                    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length;
+
+                    // Adjusted thresholds for Naira values
+                    if (variance > 50000000) return "High 🔥"; 
+                    if (variance > 10000000) return "Medium ⚠";
+                    return "Low ✅";
+                }
+
+                /* 🔍 Search & Filter System */
+                window.filterData = function () {
+                    const selected = document.getElementById("filterItem")?.value || "";
+                    const searchBox = document.getElementById("searchBox")?.value.toLowerCase() || "";
+                    let rows = document.querySelectorAll("#ledgerBody tr");
+
+                    rows.forEach(r => {
+                        const text = r.innerText.toLowerCase();
+                        // Shows the row if it matches BOTH the dropdown and the search text
+                        const matchesDropdown = !selected || text.includes(selected.toLowerCase());
+                        const matchesSearch = !searchBox || text.includes(searchBox);
+
+                        r.style.display = (matchesDropdown && matchesSearch) ? "" : "none";
+                 });
+        };
 
 /* 🎨 Global Commodity Colors */
 function getColor2(item) {
@@ -2616,90 +3095,402 @@ window.showLogin = () => {
 window.submitReport = window.submitData; 
 window.handleRegister = handleRegister;
 
+// 🔔 PULSE ALERT SYSTEM (ADD THIS ABOVE postAd)
+
+function triggerPulseAlert(item) {
+    playBeepSequence();
+    pulseLogo(item);
+}
+
+function playBeepSequence() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function beep(delay) {
+        setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.frequency.setValueAtTime(900, ctx.currentTime);
+            osc.type = "square";
+
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        }, delay);
+    }
+
+    beep(0);
+    beep(250);
+    beep(500);
+}
+
+function pulseLogo(item) {
+    const logo = document.getElementById("logo");
+    if (!logo) return;
+
+    // 🔒 LOCK POSITION (PREVENT SHIFT)
+    logo.style.position = "relative";
+    logo.style.transformOrigin = "center center";
+    logo.style.willChange = "transform";
+
+    // 🎨 UNIQUE COLOR HASH (EVERY ITEM GETS COLOR)
+    function getColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const color = `hsl(${hash % 360}, 80%, 60%)`;
+        return color;
+    }
+
+    const color = getColor(item);
+
+    function pulse(delay) {
+        setTimeout(() => {
+            logo.style.transition = "transform 0.25s ease, filter 0.25s ease";
+            logo.style.transform = "scale(1.15)";
+            logo.style.filter = `drop-shadow(0 0 15px ${color})`;
+
+            setTimeout(() => {
+                logo.style.transform = "scale(1)";
+                logo.style.filter = "none";
+            }, 250);
+        }, delay);
+    }
+
+    // 💓 EXACTLY 3 PULSES
+    pulse(0);
+    pulse(300);
+    pulse(600);
+}
+
+
+// 👇 YOUR EXISTING FUNCTION CONTINUES (DO NOT CHANGE THIS PART)
+
 /* 📢 Market Ads Logic */
-async function postAd() {
+window.postAd = async function() {
     const input = document.getElementById("adInput");
     const feed = document.getElementById("adsFeed");
 
-    if (!input || !feed) {
-        console.error("Ad elements not found");
-        return;
-    }
-
+    if (!input || !feed) return;
     if (!input.value.trim()) return;
 
     const message = input.value.trim();
 
-    // ✅ SHOW INSTANTLY (your existing UI behavior)
     const ad = document.createElement("div");
     ad.style.padding = "8px";
     ad.style.border = "1px dashed var(--dim)";
     ad.style.borderRadius = "8px";
     ad.style.marginBottom = "8px";
-    ad.style.fontSize = "0.75rem";
-    ad.innerHTML = message;
+    ad.textContent = message;
 
     feed.prepend(ad);
     input.value = "";
 
-    // ✅ SAVE TO FIRESTORE (NEW)
     try {
         await addDoc(collection(db, "MarketAds"), {
-            message: message,
-            user: getUserDisplayName ? getUserDisplayName() : "Anonymous",
+            message,
+            user: getUserDisplayName(),
             timestamp: serverTimestamp()
         });
 
-        if (typeof showToast === "function") {
-            showToast("📢 Ad posted", "🚀");
-        }
+        showToast("📢 Ad posted", "🚀");
 
     } catch (error) {
-        console.error("Ad save failed:", error);
-
-        if (typeof showToast === "function") {
-            showToast("❌ Failed to save ad", "⚠️");
-        }
+        console.error(error);
+        showToast("❌ Failed to save ad", "⚠️");
     }
-}
+};
 
-window.deleteEntry = function(id) {
-    if (!id) return alert("Invalid entry ID");
+// ⚡ INSTANT DELETE (SAFE VERSION)
+window.deleteEntry = async function(id, btn) {
+    try {
+        if (!confirm("⚠️ Delete this entry?")) return;
 
-    const confirmDelete = confirm("Delete this record?");
-    if (!confirmDelete) return;
+        const row = btn.closest("tr");
 
-    console.log("Attempting to delete ID:", id);
+        // 🔥 1. Fade out instead of immediate delete (better UX)
+        if (row) {
+            row.style.opacity = "0.5";
+            row.style.pointerEvents = "none";
+        }
 
-    // 1. Delete from Firestore Database
-    deleteDoc(doc(db, "MarketData", id))
-        .then(() => {
-            // 2. Update Local Storage Backup
-            let data = JSON.parse(localStorage.getItem("marketData") || "[]");
-            data = data.filter(item => item.id !== id);
-            localStorage.setItem("marketData", JSON.stringify(data));
+        // 🔥 2. Delete from Firestore
+        const ref = doc(db, "MarketData", id);
+        await deleteDoc(ref);
 
-            // This uses your built-in notification system instead of a popup
-            if (typeof showToast === "function") {
-                 showToast("✅ Record deleted successfully", "🗑️");
-                }
+        // 🔥 3. Remove after success
+        if (row) row.remove();
 
-            // 3. 🔄 REFRESH TABLE ONLY (Prevents Logout)
-            // This calls your existing function to redraw the table
-            if (typeof loadMarketData === "function") {
-                loadMarketData(); 
-            } else {
-                console.warn("UI refresh function not found. Manual refresh may be needed.");
+        showToast("Entry deleted", "🗑️");
+
+    } catch (error) {
+        console.error("Delete error:", error);
+
+        // 🔥 Restore UI if failed
+        if (btn) {
+            const row = btn.closest("tr");
+            if (row) {
+                row.style.opacity = "1";
+                row.style.pointerEvents = "auto";
             }
-        })
-        .catch((err) => {
-            console.error("DELETE ERROR:", err);
-            alert("Delete failed: " + err.message);
-        });
+        }
+
+        alert("❌ Failed to delete entry.");
+    }
 };
 
 // Make postAd accessible to the button
 window.postAd = postAd;
+
+/* --- CHART SYSTEM --- */
+
+function getStableCommodityKey(dataByCommodity) {
+    const keys = Object.keys(dataByCommodity);
+    return keys.length ? keys.sort()[0] : null;
+}
+
+function getSortedLabelsFromData(points) {
+    const timeMap = new Map();
+    points.forEach(point => {
+        if (point.timeId != null) {
+            timeMap.set(point.timeId, point.x);
+        } else if (point.x) {
+            timeMap.set(point.x, point.x);
+        }
+    });
+    return Array.from(timeMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([, label]) => label);
+}
+
+function renderChartToggles(dataByCommodity) {
+    const container = document.getElementById('chartToggles');
+    if (!container) return;
+
+    const commodityNames = ['ALL', ...Object.keys(dataByCommodity).sort()];
+    container.innerHTML = '';
+
+    commodityNames.forEach(name => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `filter-chip${currentCommodity === name ? ' active' : ''}`;
+        btn.innerText = name;
+        btn.onclick = () => {
+            currentCommodity = name;
+            renderChartToggles(dataByCommodity);
+            clearTimeout(chartUpdateTimer);
+            chartUpdateTimer = setTimeout(() => {
+                updateChartFromLive(dataByCommodity);
+            }, 300);
+        };
+        container.appendChild(btn);
+    });
+}
+
+// 🔥 PART 3 — ADD THE LIVE UPDATE FUNCTION
+function updateChartFromLive(dataByCommodity) {
+    if (!priceChart) return;
+
+    const selected = (currentCommodity && currentCommodity !== "ALL" && dataByCommodity[currentCommodity])
+        ? currentCommodity
+        : null;
+
+    if (selected && Object.keys(dataByCommodity).length > 0) {
+        const data = dataByCommodity[selected];
+        if (!data || data.length === 0) {
+            priceChart.data.labels = [];
+            priceChart.data.datasets = [];
+            priceChart.update();
+            return;
+        }
+        
+        const labels = getSortedLabelsFromData(data);
+        const prices = labels.map(label => data.find(p => p.x === label)?.y ?? null);
+        const climate = (typeof climateData !== "undefined") ? (climateData[selected] || []) : [];
+        const climateMap = new Map(climate.map(c => [c.time, c]));
+
+        const temps = data.map(point => {
+            if (point.timeId != null) {
+                const match = climateMap.get(point.timeId);
+                return match ? match.temp : null;
+            }
+            return null;
+        });
+
+        const prediction = generatePrediction(prices);
+        const selectedColor = (typeof getColor === "function") ? getColor(selected) : "#38bdf8";
+        
+        const futureLabels = [...labels];
+        for (let i = 1; i <= prediction.length; i++) {
+            futureLabels.push("+" + i);
+        }
+        priceChart.data.labels = futureLabels;
+
+        const corr = correlation(prices.filter(p => p !== null), temps.filter(t => t !== null));
+        console.log("Calculated Market Correlation:", corr);
+
+        priceChart.data.datasets = [
+            {
+                label: "Price (₦)",
+                data: prices,
+                borderColor: selectedColor,
+                backgroundColor: hexToRgba(selectedColor, 0.12),
+                tension: 0.4,
+                yAxisID: "y",
+                spanGaps: true
+            },
+            {
+                label: "Temperature (°C)",
+                data: temps,
+                borderColor: "#f97316",
+                backgroundColor: "rgba(249,115,22,0.1)",
+                tension: 0.4,
+                yAxisID: "y1",
+                spanGaps: true
+            },
+            {
+                label: "Prediction",
+                data: [
+                    ...new Array(prices.length - 1).fill(null),
+                    prices[prices.length - 1],
+                    ...prediction
+                ],
+                borderColor: "#22c55e",
+                borderDash: [5,5],
+                tension: 0.4,
+                yAxisID: "y",
+                spanGaps: true
+            }
+        ];
+        
+        // 🧠 AI INSIGHT GENERATION - Enhanced AI Panel
+        const allPrices = selected.map(d => Number(d.price) || 0).filter(p => p > 0);
+        const avgPrice = allPrices.length > 0 ? allPrices.reduce((a, b) => a + b) / allPrices.length : 0;
+        const maxPrice = Math.max(...allPrices);
+        const minPrice = Math.min(...allPrices);
+        const volatility = ((maxPrice - minPrice) / avgPrice * 100).toFixed(1);
+        
+        // Market Trend Analysis
+        let trendText = "Neutral - Monitor actively";
+        if (selected.length > 2) {
+            const recentAvg = selected.slice(0, 3).reduce((sum, d) => sum + (Number(d.price) || 0), 0) / 3;
+            const olderAvg = selected.slice(-3).reduce((sum, d) => sum + (Number(d.price) || 0), 0) / 3;
+            if (recentAvg > olderAvg) trendText = "📈 Bullish - Prices Rising";
+            else if (recentAvg < olderAvg) trendText = "📉 Bearish - Prices Falling";
+        }
+        
+        // Smart Alert
+        let smartAlert = "✓ Markets Stable";
+        if (volatility > 15) smartAlert = "⚠️ HIGH VOLATILITY DETECTED";
+        else if (volatility < 5) smartAlert = "✓ Low Risk - Good Entry Point";
+        
+        // Update AI Panel Fields
+        const trendEl = document.getElementById('trendText');
+        if (trendEl) trendEl.innerText = trendText;
+        const volEl = document.getElementById('volatilityText');
+        if (volEl) volEl.innerText = `${volatility}% (₦${minPrice.toLocaleString()} - ₦${maxPrice.toLocaleString()})`;
+        const alertEl = document.getElementById('smartAlertText');
+        if (alertEl) alertEl.innerText = smartAlert;
+
+        
+    } else {
+        const allPoints = Object.values(dataByCommodity).flat();
+        
+        if (allPoints.length === 0) {
+            priceChart.data.labels = [];
+            priceChart.data.datasets = [];
+            priceChart.update();
+            return;
+        }
+        
+        const labels = getSortedLabelsFromData(allPoints);
+
+        priceChart.data.labels = labels;
+        priceChart.data.datasets = Object.keys(dataByCommodity).map(name => {
+            const data = dataByCommodity[name];
+            return {
+                label: name,
+                data: labels.map(label => data.find(p => p.x === label)?.y ?? null),
+                borderColor: (typeof getColor === "function") ? getColor(name) : "#38bdf8",
+                backgroundColor: "transparent",
+                tension: 0.4,
+                spanGaps: true,
+                yAxisID: "y"
+            };
+        }).concat([
+            {
+                label: "Prediction",
+                data: [],
+                borderColor: "#22c55e",
+                borderDash: [5,5],
+                tension: 0.4,
+                yAxisID: "y",
+                spanGaps: true
+            }
+        ]);
+    }
+
+    priceChart.update();
+    
+    if (selected && priceChart.data.datasets[0]) {
+        const prices = priceChart.data.datasets[0].data;
+        checkPriceSpike(selected, prices);
+    }
+}
+
+function generatePrediction(prices) {
+
+    if (!prices || prices.length < 3) return [];
+
+    let trend = 0;
+
+    for (let i = 1; i < prices.length; i++) {
+        trend += (prices[i] - prices[i - 1]);
+    }
+
+    trend = trend / prices.length;
+
+    const lastPrice = prices[prices.length - 1];
+
+    // Predict next 5 points
+    let forecast = [];
+
+    for (let i = 1; i <= 5; i++) {
+        forecast.push(lastPrice + (trend * i));
+    }
+
+    return forecast;
+}
+
+function checkPriceSpike(itemName, prices) {
+
+    if (!prices || prices.length < 5) return;
+
+    const recent = prices.slice(-5);
+    const avg = recent.reduce((a,b)=>a+b,0)/recent.length;
+
+    const last = prices[prices.length - 1];
+
+    const el = document.getElementById("smartAlert");
+
+    if (!el) return;
+
+    if (last > avg * 1.15) {
+        el.innerHTML = `🚨 ${itemName}: Price spike detected! Possible increase tomorrow.`;
+        el.style.color = "#ef4444";
+    } else if (last < avg * 0.9) {
+        el.innerHTML = `📉 ${itemName}: Price dropping. Opportunity to buy.`;
+        el.style.color = "#22c55e";
+    } else {
+        el.innerHTML = `✅ ${itemName}: Stable market conditions.`;
+        el.style.color = "#94a3b8";
+    }
+}
 
 /* 🔄 Unified Initialization */
 window.onload = () => {
@@ -2716,7 +3507,9 @@ window.onload = () => {
     }
 
     // ✅ ADD THIS
+    if (typeof startAdsFeed === "function") {
     startAdsFeed();
+}
 
     window.scrollTo(0, 0);
 };
@@ -2724,6 +3517,93 @@ window.onload = () => {
 // Start System Notification
 if (typeof showToast === "function") {
     showToast("Bridge Connection Active", "🌉");
+}
+
+function generateAIInsight(item, prices, climate) {
+
+    if (!prices || prices.length < 5) return "Not enough data yet...";
+
+    // Filter out null values
+    const validPrices = prices.filter(p => p != null);
+    if (validPrices.length < 5) return "Not enough valid data...";
+
+    const last = validPrices[validPrices.length - 1];
+    const prev = validPrices[validPrices.length - 5];
+
+    // 📈 TREND
+    let trend = "stable";
+    if (last > prev) trend = "rising";
+    if (last < prev) trend = "falling";
+
+    // 📊 VOLATILITY
+    const avg = validPrices.reduce((a,b)=>a+b,0)/validPrices.length;
+    const variance = validPrices.reduce((a,b)=>a + Math.pow(b - avg, 2), 0) / validPrices.length;
+    const volatility = Math.sqrt(variance);
+
+    let volatilityState = volatility > avg * 0.1 ? "high" : "low";
+
+    // 🌦️ WEATHER IMPACT
+    let avgTemp = 0;
+    if (climate && climate.length > 0) {
+        avgTemp = climate.reduce((a,b)=>a + b.temp, 0) / climate.length;
+    }
+
+    let weatherEffect = "";
+    if (avgTemp > 32) weatherEffect = "High temperature may be pushing prices up.";
+    else if (avgTemp < 28) weatherEffect = "Cool weather stabilizing supply.";
+    else weatherEffect = "Weather impact is moderate.";
+
+    // 🚨 DECISION LOGIC
+    let action = "";
+    if (trend === "rising" && volatilityState === "low") {
+        action = "📈 Strong upward trend. Consider holding or late entry.";
+    } else if (trend === "falling") {
+        action = "📉 Prices dropping. Buying opportunity possible.";
+    } else if (volatilityState === "high") {
+        action = "⚠️ Market unstable. Trade cautiously.";
+    } else {
+        action = "✅ Market stable.";
+    }
+
+    return `
+<b>${item}</b><br>
+Market State: <b>${trend.toUpperCase()}</b><br>
+Volatility: <b>${volatilityState}</b><br>
+🌡️ Avg Temp: ${avgTemp.toFixed(1)}°C<br><br>
+
+📊 <b>Market Drivers:</b><br>
+${weatherEffect}
+`;
+}
+
+function generatePredictionInsight(item, prices) {
+
+    if (!prices || prices.length < 5) return "Not enough data";
+
+    // Filter out null values
+    const validPrices = prices.filter(p => p != null);
+    if (validPrices.length < 5) return "Not enough valid data";
+
+    const last = validPrices[validPrices.length - 1];
+    const prev = validPrices[validPrices.length - 3];
+
+    let direction = "stable";
+    if (last > prev) direction = "upward";
+    if (last < prev) direction = "downward";
+
+    let confidence = prev !== 0 ? Math.abs(last - prev) / prev : 0;
+
+    let msg = "";
+
+    if (direction === "upward") {
+        msg = `🔮 ${item}: Upward momentum detected. Prices may continue rising.`;
+    } else if (direction === "downward") {
+        msg = `🔮 ${item}: Downward pressure observed. Prices may drop.`;
+    } else {
+        msg = `🔮 ${item}: Market likely to remain stable.`;
+    }
+
+    return msg + `<br>Confidence: ${(confidence * 100).toFixed(1)}%`;
 }
 
 </script>
