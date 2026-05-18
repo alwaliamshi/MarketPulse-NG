@@ -1493,51 +1493,36 @@
       }
 
       @media (max-width: 768px) {
-            header.top-nav {
-                height: auto;
-                padding: 10px;
-                gap: 10px;
-            }
+        #mainApp {
+          padding-top: 140px !important;
+        }
 
-            /* Push ticker below expanded mobile header */
-            .news-ticker-bar {
-                top: 125px !important;
-            }
+        .news-ticker-bar {
+          top: 70px;
+        }
 
-            /* Push app content below ticker */
-            #mainApp {
-                padding-top: 180px !important;
-            }
-            }
+        header.top-nav {
+          height: auto;
+          padding: 10px;
+          gap: 10px;
+        }
+      }
 
       @media (max-width: 768px) {
-  .top-nav {
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between;
-    flex-wrap: nowrap !important;
+        .branding-core {
+          margin-left: 0;
+        }
 
-    padding: 8px 12px !important;
-    min-height: 90px;
-  }
+        .top-nav {
+          flex-direction: column;
+          align-items: stretch;
+        }
 
-  .branding-core {
-    margin-left: 0;
-    flex-shrink: 1;
-  }
-
-  .custom-logo-img {
-    height: 50px !important;
-  }
-
-  .news-ticker-bar {
-    top: 90px !important;
-  }
-
-  #mainApp {
-    padding-top: 130px !important;
-  }
-}
+        .top-nav > div {
+          width: 100%;
+          justify-content: space-between;
+        }
+      }
 
       table {
         display: block;
