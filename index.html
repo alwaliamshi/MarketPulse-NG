@@ -1511,20 +1511,33 @@
             }
 
       @media (max-width: 768px) {
-        .branding-core {
-          margin-left: 0;
-        }
+  .top-nav {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between;
+    flex-wrap: nowrap !important;
 
-        .top-nav {
-          flex-direction: column;
-          align-items: stretch;
-        }
+    padding: 8px 12px !important;
+    min-height: 90px;
+  }
 
-        .top-nav > div {
-          width: 100%;
-          justify-content: space-between;
-        }
-      }
+  .branding-core {
+    margin-left: 0;
+    flex-shrink: 1;
+  }
+
+  .custom-logo-img {
+    height: 50px !important;
+  }
+
+  .news-ticker-bar {
+    top: 90px !important;
+  }
+
+  #mainApp {
+    padding-top: 130px !important;
+  }
+}
 
       table {
         display: block;
