@@ -1493,20 +1493,22 @@
       }
 
       @media (max-width: 768px) {
-        #mainApp {
-          padding-top: 140px !important;
-        }
+            header.top-nav {
+                height: auto;
+                padding: 10px;
+                gap: 10px;
+            }
 
-        .news-ticker-bar {
-          top: 70px;
-        }
+            /* Push ticker below expanded mobile header */
+            .news-ticker-bar {
+                top: 125px !important;
+            }
 
-        header.top-nav {
-          height: auto;
-          padding: 10px;
-          gap: 10px;
-        }
-      }
+            /* Push app content below ticker */
+            #mainApp {
+                padding-top: 180px !important;
+            }
+            }
 
       @media (max-width: 768px) {
         .branding-core {
